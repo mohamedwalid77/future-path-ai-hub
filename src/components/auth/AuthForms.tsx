@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, User, CheckCircle, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Login form schema
 const loginSchema = z.object({
@@ -20,6 +21,7 @@ const loginSchema = z.object({
 export const LoginForm = () => {
   const { login, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const form = useForm<z.infer<typeof loginSchema>>({
@@ -31,18 +33,34 @@ export const LoginForm = () => {
   });
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
-    await login(values.email, values.password);
+    setError(null);
+    try {
+      await login(values.email, values.password);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      }
+    }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto glass-card shadow-lg animate-in">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold text-center text-gradient">Login</CardTitle>
+    <Card className="neo-blur shadow-lg animate-in border-t border-primary/20">
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
+        Luminova AI
+      </div>
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold text-center text-gradient">Welcome Back</CardTitle>
         <CardDescription className="text-center">
-          Enter your email and password to access your account
+          Enter your credentials to access your account
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4 bg-destructive/20 border-destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -50,11 +68,11 @@ export const LoginForm = () => {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-foreground/80">Email</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input placeholder="you@example.com" className="pl-10" {...field} />
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-primary" />
+                      <Input placeholder="you@example.com" className="pl-10 bg-background/50 border-muted" {...field} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -67,14 +85,14 @@ export const LoginForm = () => {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="text-foreground/80">Password</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-primary" />
                       <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="pl-10"
+                        className="pl-10 bg-background/50 border-muted"
                         {...field}
                       />
                       <Button
@@ -103,17 +121,17 @@ export const LoginForm = () => {
               </Link>
             </div>
             
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
               {isLoading ? "Logging in..." : "Login"}
             </Button>
           </form>
         </Form>
       </CardContent>
-      <CardFooter className="flex flex-col space-y-4">
-        <div className="text-center text-sm">
+      <CardFooter className="flex flex-col space-y-4 border-t border-border/40 bg-muted/20 rounded-b-lg">
+        <div className="text-center text-sm pt-2">
           Don't have an account?{" "}
-          <Link to="/auth/register" className="text-primary hover:underline">
-            Register
+          <Link to="/auth/register" className="text-primary hover:underline font-medium">
+            Create account
           </Link>
         </div>
       </CardFooter>
@@ -121,11 +139,15 @@ export const LoginForm = () => {
   );
 };
 
-// Register form schema
+// Register form schema with password requirements
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  password: z.string()
+    .min(8, { message: "Password must be at least 8 characters" })
+    .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
+    .regex(/[0-9]/, { message: "Password must contain at least one number" })
+    .regex(/[^A-Za-z0-9]/, { message: "Password must contain at least one special character" }),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -135,6 +157,7 @@ const registerSchema = z.object({
 export const RegisterForm = () => {
   const { register, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const form = useForm<z.infer<typeof registerSchema>>({
@@ -145,21 +168,44 @@ export const RegisterForm = () => {
       password: "",
       confirmPassword: "",
     },
+    mode: "onChange",
   });
 
+  const password = form.watch("password");
+  const hasMinLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
+
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {
-    await register(values.name, values.email, values.password);
+    setError(null);
+    try {
+      await register(values.name, values.email, values.password);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      }
+    }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto glass-card shadow-lg animate-in">
-      <CardHeader>
+    <Card className="neo-blur shadow-lg animate-in border-t border-primary/20">
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
+        Luminova AI
+      </div>
+      <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold text-center text-gradient">Create Account</CardTitle>
         <CardDescription className="text-center">
           Sign up to start your AI career journey
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4 bg-destructive/20 border-destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -167,11 +213,11 @@ export const RegisterForm = () => {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel className="text-foreground/80">Full Name</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input placeholder="John Doe" className="pl-10" {...field} />
+                      <User className="absolute left-3 top-3 h-4 w-4 text-primary" />
+                      <Input placeholder="John Doe" className="pl-10 bg-background/50 border-muted" {...field} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -184,11 +230,11 @@ export const RegisterForm = () => {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-foreground/80">Email</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input placeholder="you@example.com" className="pl-10" {...field} />
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-primary" />
+                      <Input placeholder="you@example.com" className="pl-10 bg-background/50 border-muted" {...field} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -201,14 +247,14 @@ export const RegisterForm = () => {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="text-foreground/80">Password</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-primary" />
                       <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="pl-10"
+                        className="pl-10 bg-background/50 border-muted"
                         {...field}
                       />
                       <Button
@@ -226,6 +272,26 @@ export const RegisterForm = () => {
                       </Button>
                     </div>
                   </FormControl>
+                  
+                  <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                    <div className={`flex items-center gap-1 ${hasMinLength ? 'text-green-500' : 'text-muted-foreground'}`}>
+                      {hasMinLength ? <CheckCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                      <span>Min. 8 characters</span>
+                    </div>
+                    <div className={`flex items-center gap-1 ${hasUppercase ? 'text-green-500' : 'text-muted-foreground'}`}>
+                      {hasUppercase ? <CheckCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                      <span>Uppercase letter</span>
+                    </div>
+                    <div className={`flex items-center gap-1 ${hasNumber ? 'text-green-500' : 'text-muted-foreground'}`}>
+                      {hasNumber ? <CheckCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                      <span>Number</span>
+                    </div>
+                    <div className={`flex items-center gap-1 ${hasSpecialChar ? 'text-green-500' : 'text-muted-foreground'}`}>
+                      {hasSpecialChar ? <CheckCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                      <span>Special character</span>
+                    </div>
+                  </div>
+                  
                   <FormMessage />
                 </FormItem>
               )}
@@ -236,14 +302,14 @@ export const RegisterForm = () => {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
+                  <FormLabel className="text-foreground/80">Confirm Password</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-primary" />
                       <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="pl-10"
+                        className="pl-10 bg-background/50 border-muted"
                         {...field}
                       />
                     </div>
@@ -253,16 +319,20 @@ export const RegisterForm = () => {
               )}
             />
             
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <div className="text-xs text-muted-foreground">
+              By creating an account, you agree to our <a href="#" className="text-primary hover:underline">Terms of Service</a> and <a href="#" className="text-primary hover:underline">Privacy Policy</a>.
+            </div>
+            
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
               {isLoading ? "Creating account..." : "Register"}
             </Button>
           </form>
         </Form>
       </CardContent>
-      <CardFooter className="flex flex-col space-y-4">
-        <div className="text-center text-sm">
+      <CardFooter className="flex flex-col space-y-4 border-t border-border/40 bg-muted/20 rounded-b-lg">
+        <div className="text-center text-sm pt-2">
           Already have an account?{" "}
-          <Link to="/auth/login" className="text-primary hover:underline">
+          <Link to="/auth/login" className="text-primary hover:underline font-medium">
             Login
           </Link>
         </div>
@@ -279,6 +349,7 @@ const forgotPasswordSchema = z.object({
 export const ForgotPasswordForm = () => {
   const { forgotPassword, isLoading } = useAuth();
   const [emailSent, setEmailSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof forgotPasswordSchema>>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -288,14 +359,24 @@ export const ForgotPasswordForm = () => {
   });
 
   const onSubmit = async (values: z.infer<typeof forgotPasswordSchema>) => {
-    await forgotPassword(values.email);
-    setEmailSent(true);
+    setError(null);
+    try {
+      await forgotPassword(values.email);
+      setEmailSent(true);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      }
+    }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto glass-card shadow-lg animate-in">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold text-center text-gradient">Forgot Password</CardTitle>
+    <Card className="neo-blur shadow-lg animate-in border-t border-primary/20">
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
+        Luminova AI
+      </div>
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold text-center text-gradient">Reset Password</CardTitle>
         <CardDescription className="text-center">
           {!emailSent
             ? "Enter your email and we'll send you a link to reset your password"
@@ -303,6 +384,13 @@ export const ForgotPasswordForm = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4 bg-destructive/20 border-destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
         {!emailSent ? (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -311,11 +399,11 @@ export const ForgotPasswordForm = () => {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-foreground/80">Email</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="you@example.com" className="pl-10" {...field} />
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-primary" />
+                        <Input placeholder="you@example.com" className="pl-10 bg-background/50 border-muted" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -323,7 +411,7 @@ export const ForgotPasswordForm = () => {
                 )}
               />
               
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
                 {isLoading ? "Sending..." : "Send Reset Link"}
               </Button>
             </form>
@@ -347,14 +435,42 @@ export const ForgotPasswordForm = () => {
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex flex-col space-y-4">
-        <div className="text-center text-sm">
+      <CardFooter className="flex flex-col space-y-4 border-t border-border/40 bg-muted/20 rounded-b-lg">
+        <div className="text-center text-sm pt-2">
           Remember your password?{" "}
-          <Link to="/auth/login" className="text-primary hover:underline">
+          <Link to="/auth/login" className="text-primary hover:underline font-medium">
             Login
           </Link>
         </div>
       </CardFooter>
     </Card>
+  );
+};
+
+export const EmailVerificationBanner = () => {
+  const { user, resendVerificationEmail, isLoading } = useAuth();
+  
+  if (!user || user.emailVerified) {
+    return null;
+  }
+  
+  return (
+    <div className="bg-primary/10 border-y border-primary/20 py-2 px-4">
+      <div className="container max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm">
+          <AlertCircle className="h-4 w-4 text-primary" />
+          <p>Please verify your email address to access all features.</p>
+        </div>
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20"
+          onClick={resendVerificationEmail}
+          disabled={isLoading}
+        >
+          {isLoading ? "Sending..." : "Resend verification email"}
+        </Button>
+      </div>
+    </div>
   );
 };
