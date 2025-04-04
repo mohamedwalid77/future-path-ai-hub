@@ -75,6 +75,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Update last login time
         userMatch.lastLogin = new Date();
         
+        // Ensure subscription is valid type
+        if (userMatch.subscription !== "free" && userMatch.subscription !== "premium") {
+          userMatch.subscription = "free";
+        }
+        
         // Update the user in localStorage
         localStorage.setItem("users", JSON.stringify(
           existingUsers.map((u: any) => u.email === email ? userMatch : u)
@@ -83,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Remove password before storing in user state
         const { password: _, ...userWithoutPassword } = userMatch;
         
-        setUser(userWithoutPassword);
+        setUser(userWithoutPassword as User);
         localStorage.setItem("user", JSON.stringify(userWithoutPassword));
         
         toast({
@@ -124,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         name,
         password, // In a real app, this would be hashed
-        subscription: "free",
+        subscription: "free" as const, // Using const assertion to specify exact literal type
         emailVerified: false,
         lastLogin: new Date(),
         createdAt: new Date(),
