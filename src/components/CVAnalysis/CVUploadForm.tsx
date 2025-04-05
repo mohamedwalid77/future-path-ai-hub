@@ -7,9 +7,23 @@ import { Upload, File, Check, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Define the same JobMatch interface to ensure consistency
+interface JobMatch {
+  id?: number;
+  Title: string;
+  Company: string;
+  Location: string;
+  Link: string;
+  relevance_score?: number;
+  Source?: string;
+  Search_Query?: string;
+  Tags?: string;
+  description?: string;
+}
+
 interface CVUploadFormProps {
   onAnalysisStart: () => void;
-  onAnalysisComplete: (skills: string[], jobMatches: any[]) => void;
+  onAnalysisComplete: (skills: string[], jobMatches: JobMatch[]) => void;
   isPremium: boolean;
 }
 
@@ -120,7 +134,7 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysis
           "node.js", "git"
         ];
     
-    const mockJobMatches = isPremium 
+    const mockJobMatches: JobMatch[] = isPremium 
       ? [
           {
             Title: "Frontend Developer",

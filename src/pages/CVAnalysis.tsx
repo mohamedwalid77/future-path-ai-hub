@@ -10,12 +10,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Upload, Award, FileText } from "lucide-react";
 
+// Update the interface to match the one in JobMatchesList.tsx
 interface JobMatch {
   id?: number;
-  Title?: string;
-  Company?: string;
-  Location?: string;
-  Link?: string;
+  Title: string;
+  Company: string;
+  Location: string;
+  Link: string;
   relevance_score?: number;
   Source?: string;
   Search_Query?: string;
