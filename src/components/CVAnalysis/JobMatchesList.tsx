@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Building, MapPin, BarChart2 } from "lucide-react";
+import { ExternalLink, Building, MapPin, BarChart2, Tag } from "lucide-react";
 
 interface JobMatch {
   id?: number;
@@ -70,14 +70,16 @@ const JobMatchesList: React.FC<JobMatchesListProps> = ({ jobMatches, isLoading =
       <CardHeader>
         <CardTitle className="text-xl font-semibold">Matching Jobs</CardTitle>
         <CardDescription>
-          Jobs that match your skills and experience
+          {normalizedJobs.length > 0 
+            ? "Jobs that match your skills and experience" 
+            : "No matching jobs found. Try uploading a more detailed CV."}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {normalizedJobs.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">
-              No matching jobs found. Try uploading a more detailed CV.
+              No matching jobs found. Try uploading a more detailed CV or adding more technical skills.
             </p>
           ) : (
             normalizedJobs.map(job => (
@@ -105,18 +107,19 @@ const JobMatchesList: React.FC<JobMatchesListProps> = ({ jobMatches, isLoading =
 
                   {job.Source && (
                     <div className="text-xs text-muted-foreground">
-                      Source: {job.Source}
+                      <span className="font-medium">Source:</span> {job.Source}
                     </div>
                   )}
                   
                   {job.Tags && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      <span className="font-medium">Tags:</span> {job.Tags}
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                      <Tag className="h-3 w-3" />
+                      <span>{job.Tags}</span>
                     </div>
                   )}
                   
                   {job.description && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {job.description}
                     </p>
                   )}

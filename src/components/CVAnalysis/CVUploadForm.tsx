@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Upload, File, Check, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
+import * as pdfjs from 'pdfjs-dist';
 
 // Define the same JobMatch interface to ensure consistency
 interface JobMatch {
@@ -27,6 +28,47 @@ interface CVUploadFormProps {
   isPremium: boolean;
 }
 
+// Common tech skills categories with keywords
+const skillsDatabase = {
+  programming: [
+    "javascript", "typescript", "python", "java", "c#", "c++", "ruby", "go", "php", "swift", "kotlin", 
+    "perl", "scala", "rust", "dart", "objective-c", "shell", "powershell", "bash", "r", "matlab"
+  ],
+  web: [
+    "html", "css", "sass", "less", "react", "angular", "vue", "svelte", "jquery", "bootstrap", 
+    "tailwind", "material-ui", "webpack", "vite", "gulp", "grunt", "babel", "next.js", "gatsby", 
+    "express", "node.js", "deno", "redux", "graphql", "rest api", "soap", "json", "xml"
+  ],
+  database: [
+    "sql", "mysql", "postgresql", "mongodb", "firebase", "dynamodb", "oracle", "cassandra", 
+    "redis", "elasticsearch", "neo4j", "mariadb", "sqlite", "supabase", "realm"
+  ],
+  devops: [
+    "git", "docker", "kubernetes", "aws", "azure", "gcp", "terraform", "jenkins", "circleci", 
+    "travis", "github actions", "ansible", "chef", "puppet", "nginx", "apache", "linux", "ubuntu", 
+    "centos", "windows server", "ci/cd"
+  ],
+  ai: [
+    "machine learning", "deep learning", "nlp", "computer vision", "tensorflow", "pytorch", "keras", 
+    "scikit-learn", "pandas", "numpy", "data analysis", "data science", "data mining", 
+    "reinforcement learning", "neural networks", "llm", "openai", "hugging face"
+  ],
+  softSkills: [
+    "communication", "teamwork", "leadership", "problem-solving", "critical thinking", 
+    "time management", "project management", "agile", "scrum", "kanban", "jira", "confluence", 
+    "presentation", "mentoring", "collaboration"
+  ]
+};
+
+// Common job titles
+const jobTitles = [
+  "software engineer", "frontend developer", "backend developer", "full stack developer", 
+  "mobile developer", "devops engineer", "data scientist", "machine learning engineer", 
+  "data analyst", "ui designer", "ux designer", "product manager", "project manager", "qa engineer", 
+  "web developer", "cloud engineer", "security engineer", "system administrator", "network engineer",
+  "database administrator"
+];
+
 const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysisComplete, isPremium }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -35,6 +77,11 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysis
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // Initialize pdfjs worker
+  React.useEffect(() => {
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+  }, []);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -116,106 +163,151 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysis
     });
   };
 
-  const analyzeCVWithModel = async () => {
+  // Function to extract text from PDF
+  const extractTextFromPDF = async (file: File): Promise<string> => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+      
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        fullText += pageText + ' ';
+      }
+      
+      return fullText;
+    } catch (error) {
+      console.error('Error extracting text from PDF:', error);
+      throw new Error('Failed to extract text from the PDF');
+    }
+  };
+
+  // Function to extract skills from CV text
+  const extractSkillsFromText = (text: string): string[] => {
+    const lowerText = text.toLowerCase();
+    const extractedSkills = new Set<string>();
+    
+    // Extract all skills from the text based on the skills database
+    Object.values(skillsDatabase).forEach(category => {
+      category.forEach(skill => {
+        // Look for the skill as a whole word
+        const regex = new RegExp(`\\b${skill}\\b`, 'i');
+        if (regex.test(lowerText)) {
+          extractedSkills.add(skill);
+        }
+      });
+    });
+    
+    // Also look for job titles that might indicate skills
+    jobTitles.forEach(title => {
+      const regex = new RegExp(`\\b${title}\\b`, 'i');
+      if (regex.test(lowerText)) {
+        extractedSkills.add(title);
+      }
+    });
+    
+    return Array.from(extractedSkills);
+  };
+
+  // Function to find jobs based on extracted skills
+  const findJobsBasedOnSkills = (skills: string[]): JobMatch[] => {
+    // These would normally be API calls to job boards
+    // For simplicity, we'll simulate some job matches based on the skills
+    
+    const jobBoards = ["LinkedIn", "Wuzzuf", "Bayt", "Indeed"];
+    const companies = [
+      "TechCorp", "InnovateSoft", "DataSys", "WebFront", "AICore", 
+      "CloudNative", "DevSecOps", "MobileTech", "QuantumCode", "CyberShield"
+    ];
+    const locations = [
+      "Remote", "New York, NY", "San Francisco, CA", "London, UK", 
+      "Berlin, Germany", "Toronto, Canada", "Dubai, UAE", "Cairo, Egypt"
+    ];
+    
+    // Map of job titles and their related skills
+    const jobSkillsMap: Record<string, string[]> = {
+      "Frontend Developer": ["javascript", "typescript", "react", "angular", "vue", "html", "css"],
+      "Backend Developer": ["python", "java", "c#", "node.js", "express", "php", "golang"],
+      "Full Stack Developer": ["javascript", "typescript", "python", "react", "node.js", "mongodb", "sql"],
+      "Data Scientist": ["python", "r", "machine learning", "data analysis", "tensorflow", "pandas", "numpy"],
+      "DevOps Engineer": ["docker", "kubernetes", "aws", "azure", "terraform", "ci/cd", "linux"],
+      "Mobile Developer": ["swift", "kotlin", "react native", "flutter", "android", "ios"],
+      "UX/UI Designer": ["figma", "sketch", "adobe xd", "ui", "ux", "design"],
+      "Product Manager": ["product management", "agile", "scrum", "user stories", "roadmap"],
+      "Machine Learning Engineer": ["python", "machine learning", "deep learning", "tensorflow", "pytorch"]
+    };
+    
+    const matches: JobMatch[] = [];
+    
+    // Generate job matches based on the user's skills
+    Object.entries(jobSkillsMap).forEach(([jobTitle, requiredSkills]) => {
+      // Calculate match score based on how many of the user's skills match the job requirements
+      const matchingSkills = skills.filter(skill => 
+        requiredSkills.some(reqSkill => skill.includes(reqSkill) || reqSkill.includes(skill))
+      );
+      
+      if (matchingSkills.length > 0) {
+        const matchScore = matchingSkills.length / requiredSkills.length;
+        if (matchScore > 0.2) { // Only include if there's at least a 20% match
+          const company = companies[Math.floor(Math.random() * companies.length)];
+          const location = locations[Math.floor(Math.random() * locations.length)];
+          const source = jobBoards[Math.floor(Math.random() * jobBoards.length)];
+          
+          matches.push({
+            id: matches.length + 1,
+            Title: jobTitle,
+            Company: company,
+            Location: location,
+            Link: `https://example.com/job/${matches.length + 1}`,
+            relevance_score: matchScore,
+            Source: source,
+            Search_Query: skills.slice(0, 3).join(", "),
+            Tags: matchingSkills.join(", "),
+            description: `This ${jobTitle} position requires skills in ${matchingSkills.slice(0, 3).join(", ")}. 
+                         ${company} is looking for an experienced professional to join their team.`
+          });
+        }
+      }
+    });
+    
+    // Sort by match score
+    matches.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+    
+    // Limit results based on premium status
+    return isPremium ? matches.slice(0, 5) : matches.slice(0, 2);
+  };
+
+  const analyzeCVWithModel = async (fileContent: string) => {
     setIsAnalyzing(true);
     
-    // Here we would typically send the CV to the Python backend
-    // For now, we'll simulate the analysis with some mock data
-    
-    // This mock data is representative of what would come from the Python model
-    const mockSkills = isPremium 
-      ? [
-          "python", "javascript", "react", "typescript", 
-          "node.js", "data analysis", "git", "machine learning",
-          "html", "css", "docker", "aws", "rest api"
-        ]
-      : [
-          "javascript", "react", "typescript", 
-          "node.js", "git"
-        ];
-    
-    const mockJobMatches: JobMatch[] = isPremium 
-      ? [
-          {
-            Title: "Frontend Developer",
-            Company: "TechSolutions Inc.",
-            Location: "Remote",
-            relevance_score: 0.92,
-            Link: "https://example.com/job1",
-            description: "Looking for a skilled frontend developer with React experience.",
-            Source: "Wuzzuf",
-            Search_Query: "Frontend Developer",
-            Tags: "React, JavaScript, TypeScript"
-          },
-          {
-            Title: "Full Stack Developer",
-            Company: "Innovate Tech",
-            Location: "New York, NY",
-            relevance_score: 0.87,
-            Link: "https://example.com/job2",
-            description: "Full stack role requiring JavaScript and Node.js expertise.",
-            Source: "LinkedIn",
-            Search_Query: "Full Stack Developer",
-            Tags: "JavaScript, Node.js, React, MongoDB"
-          },
-          {
-            Title: "Machine Learning Engineer",
-            Company: "AI Solutions Ltd",
-            Location: "San Francisco, CA",
-            relevance_score: 0.78,
-            Link: "https://example.com/job3",
-            description: "ML position for candidates with Python and data analysis skills.",
-            Source: "Bayt",
-            Search_Query: "Data Scientist",
-            Tags: "Python, Machine Learning, Data Analysis"
-          },
-          {
-            Title: "Senior React Developer",
-            Company: "WebTech Global",
-            Location: "London, UK",
-            relevance_score: 0.85,
-            Link: "https://example.com/job4",
-            Source: "Wuzzuf",
-            Search_Query: "Frontend Developer",
-            Tags: "React, Redux, TypeScript, Next.js"
-          },
-          {
-            Title: "JavaScript Engineer",
-            Company: "CodeMasters",
-            Location: "Berlin, Germany",
-            relevance_score: 0.81,
-            Link: "https://example.com/job5",
-            Source: "LinkedIn",
-            Search_Query: "Frontend Developer",
-            Tags: "JavaScript, ES6, Browser APIs"
-          }
-        ]
-      : [
-          {
-            Title: "Frontend Developer",
-            Company: "TechSolutions Inc.",
-            Location: "Remote",
-            relevance_score: 0.92,
-            Link: "https://example.com/job1",
-            Source: "Wuzzuf",
-            Search_Query: "Frontend Developer"
-          },
-          {
-            Title: "Full Stack Developer",
-            Company: "Innovate Tech",
-            Location: "New York, NY",
-            relevance_score: 0.87,
-            Link: "https://example.com/job2",
-            Source: "LinkedIn",
-            Search_Query: "Full Stack Developer"
-          }
-        ];
-    
-    // Simulate backend processing time
-    await new Promise(resolve => setTimeout(resolve, isPremium ? 5000 : 3000));
-    
-    setIsAnalyzing(false);
-    return { skills: mockSkills, jobMatches: mockJobMatches };
+    try {
+      // Extract skills from the CV text
+      const extractedSkills = extractSkillsFromText(fileContent);
+      
+      // Sort by length (shorter skills first, to make display nicer)
+      const sortedSkills = [...extractedSkills].sort((a, b) => a.length - b.length);
+      
+      // Limit skills based on premium status
+      const limitedSkills = isPremium ? sortedSkills : sortedSkills.slice(0, 5);
+      
+      // Find jobs based on the extracted skills
+      const jobMatches = findJobsBasedOnSkills(limitedSkills);
+      
+      // Simulate some processing time
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      return {
+        skills: limitedSkills,
+        jobMatches: jobMatches
+      };
+    } catch (error) {
+      console.error("Error in CV analysis:", error);
+      throw error;
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -237,8 +329,12 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysis
       // Simulate file upload
       await simulateUploadProgress();
       
-      // Simulate CV analysis with Python model
-      const results = await analyzeCVWithModel();
+      // Extract text from PDF
+      const pdfText = await extractTextFromPDF(file);
+      console.log("Extracted text from PDF:", pdfText.substring(0, 200) + "...");
+      
+      // Analyze CV text to extract skills and find job matches
+      const results = await analyzeCVWithModel(pdfText);
       
       // Call the completion handler with the results
       onAnalysisComplete(results.skills, results.jobMatches);
