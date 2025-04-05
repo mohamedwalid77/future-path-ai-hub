@@ -11,12 +11,21 @@ import { Button } from "@/components/ui/button";
 import { Upload, Award, FileText } from "lucide-react";
 
 interface JobMatch {
-  id: number;
-  title: string;
-  company: string;
-  location: string;
-  matchScore: number;
-  link: string;
+  id?: number;
+  Title?: string;
+  Company?: string;
+  Location?: string;
+  Link?: string;
+  relevance_score?: number;
+  Source?: string;
+  Search_Query?: string;
+  Tags?: string;
+  // Compatibility with old structure
+  title?: string;
+  company?: string;
+  location?: string;
+  matchScore?: number;
+  link?: string;
   description?: string;
 }
 
@@ -26,6 +35,7 @@ const CVAnalysis = () => {
   const [extractedSkills, setExtractedSkills] = useState<string[]>([]);
   const [jobMatches, setJobMatches] = useState<JobMatch[]>([]);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Redirect to login if not authenticated
   React.useEffect(() => {
@@ -34,10 +44,15 @@ const CVAnalysis = () => {
     }
   }, [user, navigate]);
 
+  const handleAnalysisStart = () => {
+    setIsAnalyzing(true);
+  };
+
   const handleAnalysisComplete = (skills: string[], matches: JobMatch[]) => {
     setExtractedSkills(skills);
     setJobMatches(matches);
     setHasAnalyzed(true);
+    setIsAnalyzing(false);
   };
 
   const handleReset = () => {
@@ -45,6 +60,8 @@ const CVAnalysis = () => {
     setJobMatches([]);
     setHasAnalyzed(false);
   };
+
+  const isPremiumUser = user?.subscription === "premium";
 
   if (!user) {
     return null; // Will redirect in the useEffect
@@ -62,7 +79,7 @@ const CVAnalysis = () => {
               CV Analysis
             </h1>
             <p className="text-muted-foreground">
-              {user?.subscription === "premium" 
+              {isPremiumUser 
                 ? "Upload your CV for AI-powered analysis and job matching"
                 : "Basic CV analysis is available. Upgrade to premium for full features."}
             </p>
@@ -70,9 +87,13 @@ const CVAnalysis = () => {
           
           {!hasAnalyzed ? (
             <div className="max-w-3xl mx-auto">
-              <CVUploadForm onAnalysisComplete={handleAnalysisComplete} />
+              <CVUploadForm 
+                onAnalysisStart={handleAnalysisStart} 
+                onAnalysisComplete={handleAnalysisComplete} 
+                isPremium={isPremiumUser}
+              />
               
-              {user?.subscription !== "premium" && (
+              {!isPremiumUser && (
                 <Card className="mt-8 border-primary/20 bg-primary/5">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -91,7 +112,7 @@ const CVAnalysis = () => {
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">•</span>
-                        <span>Job matching from multiple job boards</span>
+                        <span>Job matching from multiple job boards (Wuzzuf, LinkedIn, Bayt)</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">•</span>
@@ -124,14 +145,14 @@ const CVAnalysis = () => {
               </div>
               
               <div className="grid md:grid-cols-2 gap-6">
-                <SkillsList skills={extractedSkills} />
-                <JobMatchesList jobMatches={jobMatches} />
+                <SkillsList skills={extractedSkills} isLoading={isAnalyzing} />
+                <JobMatchesList jobMatches={jobMatches} isLoading={isAnalyzing} />
               </div>
               
               <div className="mt-8 text-center">
                 <p className="text-muted-foreground">
                   Want more personalized job matches?{" "}
-                  {user?.subscription === "premium" ? (
+                  {isPremiumUser ? (
                     "Try refining your CV with more details about your experience and skills."
                   ) : (
                     <Button 

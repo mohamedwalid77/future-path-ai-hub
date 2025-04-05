@@ -6,10 +6,11 @@ import { Check } from "lucide-react";
 
 interface SkillsListProps {
   skills: string[];
+  isLoading?: boolean;
 }
 
-const SkillsList: React.FC<SkillsListProps> = ({ skills }) => {
-  // Group skills by category
+const SkillsList: React.FC<SkillsListProps> = ({ skills, isLoading = false }) => {
+  // Group skills by category - same as the Python model categorization
   const skillCategories = {
     "Programming Languages": ["javascript", "typescript", "python", "java", "c++", "ruby", "php", "go", "rust"],
     "Web Development": ["react", "angular", "vue", "node.js", "express", "html", "css", "bootstrap", "tailwind"],
@@ -42,6 +43,28 @@ const SkillsList: React.FC<SkillsListProps> = ({ skills }) => {
       categorizedSkills["Other"].push(skill);
     }
   });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold">Analyzing Skills</CardTitle>
+          <CardDescription>
+            Extracting skills from your CV...
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-pulse flex flex-col items-center">
+              <div className="h-4 bg-primary/20 rounded w-3/4 mb-2.5"></div>
+              <div className="h-4 bg-primary/20 rounded w-1/2 mb-2.5"></div>
+              <div className="h-4 bg-primary/20 rounded w-2/3"></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

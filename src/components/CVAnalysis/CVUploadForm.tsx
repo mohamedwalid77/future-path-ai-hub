@@ -8,10 +8,12 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface CVUploadFormProps {
+  onAnalysisStart: () => void;
   onAnalysisComplete: (skills: string[], jobMatches: any[]) => void;
+  isPremium: boolean;
 }
 
-const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisComplete }) => {
+const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysisComplete, isPremium }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
@@ -92,60 +94,117 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisComplete }) => {
         return prev + 10;
       });
     }, 300);
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, 3000);
+    });
   };
 
-  const simulateAnalysis = () => {
+  const analyzeCVWithModel = async () => {
     setIsAnalyzing(true);
     
-    // Simulate CV analysis
-    setTimeout(() => {
-      // Mock data that would come from the Python model
-      const extractedSkills = [
-        "python", "javascript", "react", "typescript", 
-        "node.js", "data analysis", "git", "machine learning"
-      ];
-      
-      const mockJobMatches = [
-        {
-          id: 1,
-          title: "Frontend Developer",
-          company: "TechSolutions Inc.",
-          location: "Remote",
-          matchScore: 92,
-          link: "https://example.com/job1",
-          description: "Looking for a skilled frontend developer with React experience."
-        },
-        {
-          id: 2,
-          title: "Full Stack Developer",
-          company: "Innovate Tech",
-          location: "New York, NY",
-          matchScore: 87,
-          link: "https://example.com/job2",
-          description: "Full stack role requiring JavaScript and Node.js expertise."
-        },
-        {
-          id: 3,
-          title: "Machine Learning Engineer",
-          company: "AI Solutions Ltd",
-          location: "San Francisco, CA",
-          matchScore: 78,
-          link: "https://example.com/job3",
-          description: "ML position for candidates with Python and data analysis skills."
-        },
-      ];
-      
-      setIsAnalyzing(false);
-      onAnalysisComplete(extractedSkills, mockJobMatches);
-      
-      toast({
-        title: "CV Analysis Complete",
-        description: `Found ${extractedSkills.length} skills and ${mockJobMatches.length} matching jobs.`,
-      });
-    }, 3000);
+    // Here we would typically send the CV to the Python backend
+    // For now, we'll simulate the analysis with some mock data
+    
+    // This mock data is representative of what would come from the Python model
+    const mockSkills = isPremium 
+      ? [
+          "python", "javascript", "react", "typescript", 
+          "node.js", "data analysis", "git", "machine learning",
+          "html", "css", "docker", "aws", "rest api"
+        ]
+      : [
+          "javascript", "react", "typescript", 
+          "node.js", "git"
+        ];
+    
+    const mockJobMatches = isPremium 
+      ? [
+          {
+            Title: "Frontend Developer",
+            Company: "TechSolutions Inc.",
+            Location: "Remote",
+            relevance_score: 0.92,
+            Link: "https://example.com/job1",
+            description: "Looking for a skilled frontend developer with React experience.",
+            Source: "Wuzzuf",
+            Search_Query: "Frontend Developer",
+            Tags: "React, JavaScript, TypeScript"
+          },
+          {
+            Title: "Full Stack Developer",
+            Company: "Innovate Tech",
+            Location: "New York, NY",
+            relevance_score: 0.87,
+            Link: "https://example.com/job2",
+            description: "Full stack role requiring JavaScript and Node.js expertise.",
+            Source: "LinkedIn",
+            Search_Query: "Full Stack Developer",
+            Tags: "JavaScript, Node.js, React, MongoDB"
+          },
+          {
+            Title: "Machine Learning Engineer",
+            Company: "AI Solutions Ltd",
+            Location: "San Francisco, CA",
+            relevance_score: 0.78,
+            Link: "https://example.com/job3",
+            description: "ML position for candidates with Python and data analysis skills.",
+            Source: "Bayt",
+            Search_Query: "Data Scientist",
+            Tags: "Python, Machine Learning, Data Analysis"
+          },
+          {
+            Title: "Senior React Developer",
+            Company: "WebTech Global",
+            Location: "London, UK",
+            relevance_score: 0.85,
+            Link: "https://example.com/job4",
+            Source: "Wuzzuf",
+            Search_Query: "Frontend Developer",
+            Tags: "React, Redux, TypeScript, Next.js"
+          },
+          {
+            Title: "JavaScript Engineer",
+            Company: "CodeMasters",
+            Location: "Berlin, Germany",
+            relevance_score: 0.81,
+            Link: "https://example.com/job5",
+            Source: "LinkedIn",
+            Search_Query: "Frontend Developer",
+            Tags: "JavaScript, ES6, Browser APIs"
+          }
+        ]
+      : [
+          {
+            Title: "Frontend Developer",
+            Company: "TechSolutions Inc.",
+            Location: "Remote",
+            relevance_score: 0.92,
+            Link: "https://example.com/job1",
+            Source: "Wuzzuf",
+            Search_Query: "Frontend Developer"
+          },
+          {
+            Title: "Full Stack Developer",
+            Company: "Innovate Tech",
+            Location: "New York, NY",
+            relevance_score: 0.87,
+            Link: "https://example.com/job2",
+            Source: "LinkedIn",
+            Search_Query: "Full Stack Developer"
+          }
+        ];
+    
+    // Simulate backend processing time
+    await new Promise(resolve => setTimeout(resolve, isPremium ? 5000 : 3000));
+    
+    setIsAnalyzing(false);
+    return { skills: mockSkills, jobMatches: mockJobMatches };
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!file) {
@@ -157,12 +216,31 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisComplete }) => {
       return;
     }
     
-    simulateUploadProgress();
+    // Signal that analysis has started
+    onAnalysisStart();
     
-    // After "uploading" is complete, start analysis
-    setTimeout(() => {
-      simulateAnalysis();
-    }, 3000);
+    try {
+      // Simulate file upload
+      await simulateUploadProgress();
+      
+      // Simulate CV analysis with Python model
+      const results = await analyzeCVWithModel();
+      
+      // Call the completion handler with the results
+      onAnalysisComplete(results.skills, results.jobMatches);
+      
+      toast({
+        title: "CV Analysis Complete",
+        description: `Found ${results.skills.length} skills and ${results.jobMatches.length} matching jobs.`,
+      });
+    } catch (error) {
+      console.error("Error analyzing CV:", error);
+      toast({
+        title: "Analysis Failed",
+        description: "There was a problem analyzing your CV. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -170,7 +248,7 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisComplete }) => {
       <CardHeader>
         <CardTitle className="text-2xl font-bold">Upload your CV</CardTitle>
         <CardDescription>
-          {user?.subscription === "premium" 
+          {isPremium 
             ? "Our premium AI model will analyze your CV to extract skills and find matching jobs." 
             : "Upload your CV for basic analysis. Upgrade to premium for advanced features."}
         </CardDescription>
