@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BrainCircuit, Lock, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 type ModelFeature = {
   name: string;
@@ -33,7 +34,18 @@ const ModelCard = ({
   onSubscribe,
 }: ModelCardProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const canUse = !isPremium || (user?.subscription === "premium");
+
+  const handleUseModel = () => {
+    // Call the provided onUse callback
+    onUse();
+    
+    // If this is the premium model, navigate to the CV analysis page
+    if (isPremium) {
+      navigate("/cv-analysis");
+    }
+  };
 
   return (
     <Card className={`w-full overflow-hidden transition-all duration-300 hover:shadow-lg ${isPremium ? 'border-primary/50' : ''}`}>
@@ -89,7 +101,7 @@ const ModelCard = ({
         {canUse ? (
           <Button 
             className="w-full" 
-            onClick={onUse}
+            onClick={handleUseModel}
           >
             Use Model
           </Button>

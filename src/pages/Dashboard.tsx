@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,6 +72,8 @@ const Dashboard = () => {
         title: "Model activated",
         description: `You're now using the ${isPremium ? "Premium" : "Basic"} AI model.`,
       });
+      
+      // We don't need to navigate here anymore as it's handled in the ModelCard component
     }
   };
 
