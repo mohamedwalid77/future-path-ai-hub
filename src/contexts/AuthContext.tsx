@@ -4,10 +4,21 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Initialize the Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Initialize the Supabase client with explicit error handling
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Validate Supabase credentials before creating client
+if (!supabaseUrl || !supabaseKey) {
+  console.error(
+    "Supabase credentials are missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables."
+  );
+}
+
+// Create client only if we have valid credentials
+const supabase = supabaseUrl && supabaseKey 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
 type User = {
   id: string;
@@ -23,7 +34,7 @@ type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  supabase: SupabaseClient;
+  supabase: SupabaseClient | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -52,6 +63,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check for session on initial load
   useEffect(() => {
+    // If Supabase isn't initialized, show error and exit early
+    if (!supabase) {
+      setIsLoading(false);
+      toast({
+        title: "Configuration Error",
+        description: "Supabase is not properly configured. Please check your environment variables.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const getInitialSession = async () => {
       setIsLoading(true);
       
@@ -94,42 +116,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     getInitialSession();
 
     // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          // Get user profile from profiles table on sign in
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profile) {
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              name: profile.name || '',
-              subscription: profile.subscription || 'free',
-              emailVerified: session.user.email_confirmed_at !== null,
-              lastLogin: new Date(session.user.last_sign_in_at || ''),
-              createdAt: new Date(profile.created_at || ''),
-            });
+    let subscription: { unsubscribe: () => void } = { unsubscribe: () => {} };
+    
+    if (supabase) {
+      const { data } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (event === 'SIGNED_IN' && session) {
+            // Get user profile from profiles table on sign in
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (profile) {
+              setUser({
+                id: session.user.id,
+                email: session.user.email || '',
+                name: profile.name || '',
+                subscription: profile.subscription || 'free',
+                emailVerified: session.user.email_confirmed_at !== null,
+                lastLogin: new Date(session.user.last_sign_in_at || ''),
+                createdAt: new Date(profile.created_at || ''),
+              });
+            }
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
           }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
         }
-      }
-    );
+      );
+      
+      subscription = data.subscription;
+    }
 
     // Cleanup subscription
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [toast]);
 
+  // All auth methods now check if supabase is initialized first
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      if (!supabase) {
+        throw new Error("Supabase is not initialized");
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -159,6 +192,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
+      if (!supabase) {
+        throw new Error("Supabase is not initialized");
+      }
+      
       // Sign up the user with Supabase auth
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -208,6 +245,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     setIsLoading(true);
     try {
+      if (!supabase) {
+        throw new Error("Supabase is not initialized");
+      }
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -236,6 +277,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const forgotPassword = async (email: string) => {
     setIsLoading(true);
     try {
+      if (!supabase) {
+        throw new Error("Supabase is not initialized");
+      }
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
@@ -262,6 +307,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPassword = async (token: string, password: string) => {
     setIsLoading(true);
     try {
+      if (!supabase) {
+        throw new Error("Supabase is not initialized");
+      }
+      
       // In Supabase, the token is handled via the URL so we just update the password
       const { error } = await supabase.auth.updateUser({
         password: password
@@ -289,7 +338,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateSubscription = async (type: "free" | "premium") => {
-    if (!user) return;
+    if (!user || !supabase) return;
     
     setIsLoading(true);
     try {
@@ -330,8 +379,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resendVerificationEmail = async () => {
     setIsLoading(true);
     try {
-      if (!user) {
-        throw new Error("User not logged in");
+      if (!user || !supabase) {
+        throw new Error("User not logged in or Supabase not initialized");
       }
       
       const { error } = await supabase.auth.resend({
