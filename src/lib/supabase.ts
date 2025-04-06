@@ -4,25 +4,16 @@ import { toast } from '@/components/ui/use-toast';
 
 // Initialize the Supabase client with explicit error handling
 const supabaseUrl = 'https://dzyzxpnpkhsdmgmsuaar.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6eXp4cG5wa2hzZG1nbXN1YWFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2NDE1MjYsImV4cCI6MjA1NzIxNzUyNn0.Oz3lnT3j6EN9e8TEeaPSSOyZPh5aF0uwX5jJpSkvLPM';
 
-// Validate Supabase credentials before creating client
-if (!supabaseKey) {
-  console.error(
-    "Supabase anon key is missing. Please set VITE_SUPABASE_ANON_KEY environment variable."
-  );
-}
-
-// Create client only if we have valid credentials
-export const supabase = supabaseUrl && supabaseKey 
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
+// Create Supabase client
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const validateSupabaseClient = (): boolean => {
   if (!supabase) {
     toast({
       title: "Configuration Error",
-      description: "Supabase is not properly configured. Please set your VITE_SUPABASE_ANON_KEY environment variable.",
+      description: "Supabase is not properly configured.",
       variant: "destructive",
     });
     return false;
