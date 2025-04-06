@@ -1,5 +1,5 @@
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { toast } from '@/components/ui/use-toast';
 
 // Initialize the Supabase client with explicit error handling
