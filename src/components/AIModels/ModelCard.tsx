@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { BrainCircuit, Lock, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 type ModelFeature = {
   name: string;
@@ -35,16 +36,29 @@ const ModelCard = ({
 }: ModelCardProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  // Check if user can use this model (either it's free or user has premium subscription)
   const canUse = !isPremium || (user?.subscription === "premium");
 
   const handleUseModel = () => {
+    // Double-check subscription status before proceeding
+    if (isPremium && user?.subscription !== "premium") {
+      // If this happens, show subscription modal instead
+      toast({
+        title: "Premium subscription required",
+        description: "Please subscribe to access premium models.",
+        variant: "destructive",
+      });
+      onSubscribe();
+      return;
+    }
+    
     // Call the provided onUse callback
     onUse();
     
-    // If this is the premium model, navigate to the CV analysis page
-    if (isPremium) {
-      navigate("/cv-analysis");
-    }
+    // Navigate to the CV analysis page
+    navigate("/cv-analysis");
   };
 
   return (
