@@ -1,4 +1,3 @@
-
 import { supabase, validateSupabaseClient } from '@/lib/supabase';
 import { User } from '@/types/auth';
 import { toast } from '@/components/ui/use-toast';
@@ -223,12 +222,25 @@ export const authService = {
       throw new Error("Supabase is not initialized");
     }
     
-    const { error } = await supabase
-      .from('profiles')
-      .update({ subscription: type })
-      .eq('id', userId);
-      
-    if (error) {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ subscription: type })
+        .eq('id', userId);
+        
+      if (error) {
+        // Check if this is a "relation does not exist" error
+        if (error.code === '42P01') {
+          console.error('The profiles table does not exist:', error);
+          localStorage.setItem("supabase_profiles_error", "true");
+          
+          // In demo mode, just return without erroring
+          return;
+        }
+        throw error;
+      }
+    } catch (error) {
+      console.error("Error updating subscription:", error);
       throw error;
     }
   },
