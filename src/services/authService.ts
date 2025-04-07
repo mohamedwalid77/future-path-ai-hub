@@ -50,18 +50,49 @@ export const authService = {
       throw new Error("Supabase is not initialized");
     }
     
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
+      if (error) {
+        // Check for specific error types to provide better messages
+        if (error.message === "Invalid login credentials") {
+          if (await this.emailExists(email)) {
+            // Email exists but credentials are wrong - could be wrong password or unconfirmed email
+            const { data: userData } = await supabase.auth.admin?.getUserByEmail(email) || { data: null };
+            
+            if (userData && !userData.email_confirmed_at) {
+              throw new Error("Email not verified. Please check your inbox for the verification link or request a new one.");
+            }
+          }
+        }
+        throw error;
+      }
+
+      if (!data.user) return null;
+      
+      return this.getUserProfile(data.user.id);
+    } catch (error: any) {
+      console.error('Login error:', error);
       throw error;
     }
-
-    if (!data.user) return null;
+  },
+  
+  // Check if an email exists in the system
+  async emailExists(email: string): Promise<boolean> {
+    if (!validateSupabaseClient() || !supabase) return false;
     
-    return this.getUserProfile(data.user.id);
+    try {
+      // This is a workaround since Supabase doesn't have a direct "check email exists" endpoint
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      
+      // If there's no error, the email exists
+      return !error;
+    } catch {
+      return false;
+    }
   },
   
   // Register a new user
@@ -208,5 +239,10 @@ export const authService = {
     if (error) {
       throw error;
     }
+    
+    toast({
+      title: "Verification email sent",
+      description: "Please check your inbox and spam folder for the verification link",
+    });
   }
 };

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -41,9 +40,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       navigate("/dashboard");
     } catch (error: any) {
+      // Improve error messages for better user experience
+      let errorMessage = error.message;
+      
+      if (error.message === "Invalid login credentials") {
+        errorMessage = "The email or password you entered is incorrect.";
+      } else if (error.message.includes("Email not verified")) {
+        // Handle unverified email specifically
+        const userEmail = email;
+        errorMessage = "Please verify your email before logging in.";
+        
+        // Add option to resend verification email
+        toast({
+          title: "Email not verified",
+          description: (
+            <div>
+              <p>Please check your inbox for the verification link.</p>
+              <button 
+                className="text-primary underline mt-2"
+                onClick={() => authService.resendVerificationEmail(userEmail)}
+              >
+                Resend verification email
+              </button>
+            </div>
+          ),
+          variant: "destructive",
+        });
+        return;
+      }
+      
       toast({
         title: "Login failed",
-        description: error.message || "Please check your credentials and try again",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -155,8 +183,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // This is handled by Supabase automatically via email verification link
     toast({
       title: "Email verified",
-      description: "Your email has been successfully verified.",
+      description: "Your email has been successfully verified. You can now log in.",
     });
+    navigate("/auth/login");
   };
 
   const resendVerificationEmail = async () => {
