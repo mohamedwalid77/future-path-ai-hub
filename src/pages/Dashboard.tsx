@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,7 +20,6 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-// Mock data for widgets
 const skillsData = [
   { name: "Machine Learning", progress: 65 },
   { name: "Data Science", progress: 48 },
@@ -42,14 +40,14 @@ const careerPaths = [
 ];
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, updateSubscription } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [progress, setProgress] = useState(45);
 
-  // Simulate progress update
   useEffect(() => {
     const timer = setTimeout(() => {
       setProgress(progress + 1 > 100 ? 0 : progress + 1);
@@ -57,14 +55,15 @@ const Dashboard = () => {
     return () => clearTimeout(timer);
   }, [progress]);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!user) {
       navigate("/auth/login");
     }
   }, [user, navigate]);
 
-  const handleUseModel = (isPremium: boolean) => {
+  const handleUseModel = (modelId: string, isPremium: boolean) => {
+    setSelectedModelId(modelId);
+    
     if (isPremium && user?.subscription !== "premium") {
       setIsModalOpen(true);
     } else {
@@ -73,7 +72,7 @@ const Dashboard = () => {
         description: `You're now using the ${isPremium ? "Premium" : "Basic"} AI model.`,
       });
       
-      // We don't need to navigate here anymore as it's handled in the ModelCard component
+      // Navigation is now handled directly in the ModelCard component
     }
   };
 
@@ -116,7 +115,6 @@ const Dashboard = () => {
             </p>
           </div>
           
-          {/* Dashboard Tabs */}
           <div className="flex flex-wrap gap-2 mb-6 border-b border-muted/30 pb-2">
             <button 
               className={`px-4 py-2 rounded-t-lg transition-colors ${activeTab === 'overview' ? 'bg-primary/20 text-primary' : 'hover:bg-muted/20'}`}
@@ -140,7 +138,6 @@ const Dashboard = () => {
           
           {activeTab === 'overview' && (
             <>
-              {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 <Card className="bg-[#1a1a2e] border-primary/10">
                   <CardContent className="p-4 flex items-center gap-4">
@@ -182,9 +179,7 @@ const Dashboard = () => {
                 </Card>
               </div>
               
-              {/* Main Widgets */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Left Column */}
                 <div className="space-y-6">
                   <Card className="bg-[#1a1a2e] border-primary/10">
                     <CardHeader className="pb-2">
@@ -224,7 +219,6 @@ const Dashboard = () => {
                   </Card>
                 </div>
                 
-                {/* Middle Column */}
                 <div className="space-y-6">
                   <Card className="bg-[#1a1a2e] border-primary/10">
                     <CardHeader className="pb-2">
@@ -252,7 +246,6 @@ const Dashboard = () => {
                   </Card>
                 </div>
                 
-                {/* Right Column */}
                 <div className="space-y-6">
                   <Card className="bg-[#1a1a2e] border-primary/10">
                     <CardHeader className="pb-2">
@@ -320,7 +313,7 @@ const Dashboard = () => {
                 isPremium={false}
                 price="$0"
                 features={freeModelFeatures}
-                onUse={() => handleUseModel(false)}
+                onUse={() => handleUseModel("free", false)}
                 onSubscribe={() => setIsModalOpen(true)}
               />
               
@@ -331,7 +324,7 @@ const Dashboard = () => {
                 isPremium={true}
                 price="$5"
                 features={premiumModelFeatures}
-                onUse={() => handleUseModel(true)}
+                onUse={() => handleUseModel("premium", true)}
                 onSubscribe={() => setIsModalOpen(true)}
               />
             

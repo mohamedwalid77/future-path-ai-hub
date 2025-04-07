@@ -2,8 +2,8 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import { Upload, File, Check, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Upload, File, Check, X, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import * as pdfjs from 'pdfjs-dist';
@@ -24,8 +24,9 @@ interface JobMatch {
 
 interface CVUploadFormProps {
   onAnalysisStart: () => void;
-  onAnalysisComplete: (skills: string[], jobMatches: JobMatch[]) => void;
+  onAnalysisComplete: (skills: string[], jobMatches: JobMatch[], hasError?: boolean) => void;
   isPremium: boolean;
+  simulateError?: boolean; // For testing error states
 }
 
 // Common tech skills categories with keywords
@@ -69,7 +70,12 @@ const jobTitles = [
   "database administrator"
 ];
 
-const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysisComplete, isPremium }) => {
+const CVUploadForm: React.FC<CVUploadFormProps> = ({ 
+  onAnalysisStart, 
+  onAnalysisComplete, 
+  isPremium, 
+  simulateError = false 
+}) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
@@ -77,6 +83,7 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysis
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [forceError, setForceError] = useState(simulateError);
   
   // Initialize pdfjs worker
   React.useEffect(() => {
@@ -192,8 +199,8 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysis
     // Extract all skills from the text based on the skills database
     Object.values(skillsDatabase).forEach(category => {
       category.forEach(skill => {
-        // Look for the skill as a whole word
-        const regex = new RegExp(`\\b${skill}\\b`, 'i');
+        // Look for the skill as a whole word with word boundaries
+        const regex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
         if (regex.test(lowerText)) {
           extractedSkills.add(skill);
         }
@@ -202,7 +209,7 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysis
     
     // Also look for job titles that might indicate skills
     jobTitles.forEach(title => {
-      const regex = new RegExp(`\\b${title}\\b`, 'i');
+      const regex = new RegExp(`\\b${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
       if (regex.test(lowerText)) {
         extractedSkills.add(title);
       }
@@ -283,6 +290,11 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysis
     setIsAnalyzing(true);
     
     try {
+      // If we're forcing an error (for testing), throw an exception
+      if (forceError) {
+        throw new Error("Forced analysis error for testing");
+      }
+      
       // Extract skills from the CV text
       const extractedSkills = extractSkillsFromText(fileContent);
       
@@ -333,24 +345,52 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysis
       const pdfText = await extractTextFromPDF(file);
       console.log("Extracted text from PDF:", pdfText.substring(0, 200) + "...");
       
-      // Analyze CV text to extract skills and find job matches
-      const results = await analyzeCVWithModel(pdfText);
-      
-      // Call the completion handler with the results
-      onAnalysisComplete(results.skills, results.jobMatches);
-      
-      toast({
-        title: "CV Analysis Complete",
-        description: `Found ${results.skills.length} skills and ${results.jobMatches.length} matching jobs.`,
-      });
+      try {
+        // Analyze CV text to extract skills and find job matches
+        const results = await analyzeCVWithModel(pdfText);
+        
+        // Call the completion handler with the results
+        onAnalysisComplete(results.skills, results.jobMatches, false);
+        
+        toast({
+          title: "CV Analysis Complete",
+          description: `Found ${results.skills.length} skills and ${results.jobMatches.length} matching jobs.`,
+        });
+      } catch (error) {
+        console.error("Error in CV analysis:", error);
+        
+        // Signal analysis failure
+        onAnalysisComplete([], [], true);
+        
+        toast({
+          title: "Analysis Failed",
+          description: "There was a problem analyzing your CV. Please try again with a different file.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Error analyzing CV:", error);
+      
+      // Signal analysis failure 
+      onAnalysisComplete([], [], true);
+      
       toast({
         title: "Analysis Failed",
-        description: "There was a problem analyzing your CV. Please try again.",
+        description: "There was a problem processing your CV. Please try again.",
         variant: "destructive",
       });
     }
+  };
+
+  // Function to force an error state for testing
+  const toggleForceError = () => {
+    setForceError(prev => !prev);
+    toast({
+      title: forceError ? "Error simulation disabled" : "Error simulation enabled",
+      description: forceError 
+        ? "CV analysis will now attempt to complete normally" 
+        : "Next CV upload will simulate an analysis failure",
+    });
   };
 
   return (
@@ -433,6 +473,25 @@ const CVUploadForm: React.FC<CVUploadFormProps> = ({ onAnalysisStart, onAnalysis
               )}
             </div>
           )}
+          
+          {/* Hidden button to toggle error simulation - for testing only */}
+          <div className="mt-4">
+            <div className="flex items-center gap-2 p-2 rounded-md bg-destructive/5 border border-destructive/10">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <span className="text-xs text-muted-foreground">
+                Demo Mode: {forceError ? "Analysis will fail" : "Analysis will succeed"}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs ml-auto"
+                onClick={toggleForceError}
+              >
+                {forceError ? "Disable Error" : "Simulate Error"}
+              </Button>
+            </div>
+          </div>
         </form>
       </CardContent>
       <CardFooter>
