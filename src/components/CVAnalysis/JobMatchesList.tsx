@@ -2,8 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Building, MapPin, BarChart2, Tag, AlertTriangle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ExternalLink, Building, MapPin, BarChart2 } from "lucide-react";
 
 interface JobMatch {
   id?: number;
@@ -26,10 +25,9 @@ interface JobMatch {
 interface JobMatchesListProps {
   jobMatches: JobMatch[];
   isLoading?: boolean;
-  hasError?: boolean;
 }
 
-const JobMatchesList: React.FC<JobMatchesListProps> = ({ jobMatches, isLoading = false, hasError = false }) => {
+const JobMatchesList: React.FC<JobMatchesListProps> = ({ jobMatches, isLoading = false }) => {
   // Normalize job data to handle both formats
   const normalizedJobs = jobMatches.map(job => {
     return {
@@ -66,48 +64,20 @@ const JobMatchesList: React.FC<JobMatchesListProps> = ({ jobMatches, isLoading =
       </Card>
     );
   }
-  
-  if (hasError) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold text-destructive flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Job Matching Failed
-          </CardTitle>
-          <CardDescription>
-            We couldn't find matching jobs for your CV.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              There was an error while trying to find jobs that match your skills.
-            </AlertDescription>
-          </Alert>
-          <div className="text-sm text-muted-foreground">
-            <p>We were unable to extract enough information from your CV to suggest relevant job matches. Please try uploading a different CV with more detailed information about your skills and experience.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-xl font-semibold">Matching Jobs</CardTitle>
         <CardDescription>
-          {normalizedJobs.length > 0 
-            ? "Jobs that match your skills and experience" 
-            : "No matching jobs found. Try uploading a more detailed CV."}
+          Jobs that match your skills and experience
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {normalizedJobs.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">
-              No matching jobs found. Try uploading a more detailed CV or adding more technical skills.
+              No matching jobs found. Try uploading a more detailed CV.
             </p>
           ) : (
             normalizedJobs.map(job => (
@@ -135,19 +105,18 @@ const JobMatchesList: React.FC<JobMatchesListProps> = ({ jobMatches, isLoading =
 
                   {job.Source && (
                     <div className="text-xs text-muted-foreground">
-                      <span className="font-medium">Source:</span> {job.Source}
+                      Source: {job.Source}
                     </div>
                   )}
                   
                   {job.Tags && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                      <Tag className="h-3 w-3" />
-                      <span>{job.Tags}</span>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      <span className="font-medium">Tags:</span> {job.Tags}
                     </div>
                   )}
                   
                   {job.description && (
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground">
                       {job.description}
                     </p>
                   )}

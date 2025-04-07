@@ -8,7 +8,7 @@ import SkillsList from "@/components/CVAnalysis/SkillsList";
 import JobMatchesList from "@/components/CVAnalysis/JobMatchesList";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, Award, FileText, AlertTriangle } from "lucide-react";
+import { Upload, Award, FileText } from "lucide-react";
 
 // Update the interface to match the one in JobMatchesList.tsx
 interface JobMatch {
@@ -37,7 +37,6 @@ const CVAnalysis = () => {
   const [jobMatches, setJobMatches] = useState<JobMatch[]>([]);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [hasError, setHasError] = useState(false);
 
   // Redirect to login if not authenticated
   React.useEffect(() => {
@@ -48,22 +47,19 @@ const CVAnalysis = () => {
 
   const handleAnalysisStart = () => {
     setIsAnalyzing(true);
-    setHasError(false);
   };
 
-  const handleAnalysisComplete = (skills: string[], matches: JobMatch[], error: boolean = false) => {
+  const handleAnalysisComplete = (skills: string[], matches: JobMatch[]) => {
     setExtractedSkills(skills);
     setJobMatches(matches);
     setHasAnalyzed(true);
     setIsAnalyzing(false);
-    setHasError(error);
   };
 
   const handleReset = () => {
     setExtractedSkills([]);
     setJobMatches([]);
     setHasAnalyzed(false);
-    setHasError(false);
   };
 
   const isPremiumUser = user?.subscription === "premium";
@@ -142,52 +138,34 @@ const CVAnalysis = () => {
             </div>
           ) : (
             <>
-              <div className="flex justify-between items-center mb-6">
-                {hasError && (
-                  <div className="flex items-center gap-2 text-destructive">
-                    <AlertTriangle className="h-5 w-5" />
-                    <span>Analysis failed. Try again with a different file.</span>
-                  </div>
-                )}
-                <div className={hasError ? "ml-auto" : ""}>
-                  <Button variant="outline" onClick={handleReset}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Another CV
-                  </Button>
-                </div>
+              <div className="flex justify-end mb-6">
+                <Button variant="outline" onClick={handleReset}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Another CV
+                </Button>
               </div>
               
               <div className="grid md:grid-cols-2 gap-6">
-                <SkillsList 
-                  skills={extractedSkills} 
-                  isLoading={isAnalyzing} 
-                  hasError={hasError} 
-                />
-                <JobMatchesList 
-                  jobMatches={jobMatches} 
-                  isLoading={isAnalyzing} 
-                  hasError={hasError} 
-                />
+                <SkillsList skills={extractedSkills} isLoading={isAnalyzing} />
+                <JobMatchesList jobMatches={jobMatches} isLoading={isAnalyzing} />
               </div>
               
-              {!hasError && (
-                <div className="mt-8 text-center">
-                  <p className="text-muted-foreground">
-                    Want more personalized job matches?{" "}
-                    {isPremiumUser ? (
-                      "Try refining your CV with more details about your experience and skills."
-                    ) : (
-                      <Button 
-                        variant="link" 
-                        onClick={() => navigate("/dashboard?tab=models")}
-                        className="px-0 text-primary"
-                      >
-                        Upgrade to Premium
-                      </Button>
-                    )}
-                  </p>
-                </div>
-              )}
+              <div className="mt-8 text-center">
+                <p className="text-muted-foreground">
+                  Want more personalized job matches?{" "}
+                  {isPremiumUser ? (
+                    "Try refining your CV with more details about your experience and skills."
+                  ) : (
+                    <Button 
+                      variant="link" 
+                      onClick={() => navigate("/dashboard?tab=models")}
+                      className="px-0 text-primary"
+                    >
+                      Upgrade to Premium
+                    </Button>
+                  )}
+                </p>
+              </div>
             </>
           )}
         </div>
