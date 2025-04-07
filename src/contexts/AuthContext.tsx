@@ -1,11 +1,31 @@
-import React, { createContext, useContext } from "react";
+
+import React, { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { AuthContextType } from "@/types/auth";
-import { supabase, validateSupabaseClient } from "@/lib/supabase";
-import { authService } from "@/services/authService";
-import { useAuthState } from "@/hooks/useAuthState";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+
+type User = {
+  id: string;
+  email: string;
+  name: string;
+  subscription: "free" | "premium" | null;
+  emailVerified: boolean;
+  lastLogin: Date;
+  createdAt: Date;
+};
+
+type AuthContextType = {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => void;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
+  updateSubscription: (type: "free" | "premium") => void;
+  verifyEmail: (token: string) => Promise<void>;
+  resendVerificationEmail: () => Promise<void>;
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -18,72 +38,114 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isLoading, isAuthenticated } = useAuthState();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Display a warning if Supabase is not configured
-  const isSupabaseConfigured = !!supabase;
+  useEffect(() => {
+    // Check if the user is logged in
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setIsLoading(false);
+  }, []);
 
   const login = async (email: string, password: string) => {
-    if (!validateSupabaseClient()) {
-      return;
-    }
-    
+    setIsLoading(true);
     try {
-      await authService.login(email, password);
+      // Simulating API call with setTimeout
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      toast({
-        title: "Login successful",
-        description: "Welcome back to Luminova AI!",
-      });
-      
-      navigate("/dashboard");
-    } catch (error: any) {
-      // Improve error messages for better user experience
-      let errorMessage = error.message;
-      
-      if (error.message === "Invalid login credentials") {
-        errorMessage = "The email or password you entered is incorrect.";
-      } else if (error.message.includes("Email not verified")) {
-        // Handle unverified email specifically
-        const userEmail = email;
-        errorMessage = "Please verify your email before logging in.";
+      // For demo purposes, just check if email and password are not empty
+      if (email && password) {
+        // Get user from localStorage if exists or create a mock user for demonstration
+        const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
+        const userMatch = existingUsers.find((u: any) => u.email === email);
         
-        // Add option to resend verification email
+        if (!userMatch) {
+          throw new Error("User not found");
+        }
+        
+        if (userMatch.password !== password) {
+          throw new Error("Invalid credentials");
+        }
+        
+        // Update last login time
+        userMatch.lastLogin = new Date();
+        
+        // Ensure subscription is valid type
+        if (userMatch.subscription !== "free" && userMatch.subscription !== "premium") {
+          userMatch.subscription = "free";
+        }
+        
+        // Update the user in localStorage
+        localStorage.setItem("users", JSON.stringify(
+          existingUsers.map((u: any) => u.email === email ? userMatch : u)
+        ));
+        
+        // Remove password before storing in user state
+        const { password: _, ...userWithoutPassword } = userMatch;
+        
+        setUser(userWithoutPassword as User);
+        localStorage.setItem("user", JSON.stringify(userWithoutPassword));
+        
         toast({
-          title: "Email not verified",
-          description: (
-            <div>
-              <p>Please check your inbox for the verification link.</p>
-              <button 
-                className="text-primary underline mt-2"
-                onClick={() => authService.resendVerificationEmail(userEmail)}
-              >
-                Resend verification email
-              </button>
-            </div>
-          ),
-          variant: "destructive",
+          title: "Login successful",
+          description: "Welcome back to Luminova AI!",
         });
-        return;
+        
+        navigate("/dashboard");
+      } else {
+        throw new Error("Invalid credentials");
       }
-      
+    } catch (error) {
       toast({
         title: "Login failed",
-        description: errorMessage,
+        description: error instanceof Error ? error.message : "Please check your credentials and try again",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const register = async (name: string, email: string, password: string) => {
-    if (!validateSupabaseClient()) {
-      return;
-    }
-    
+    setIsLoading(true);
     try {
-      await authService.register(name, email, password);
+      // Simulating API call with setTimeout
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      // Check if user already exists
+      const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
+      if (existingUsers.some((u: any) => u.email === email)) {
+        throw new Error("Email already registered");
+      }
+      
+      // Create a mock user for demonstration
+      const newUser = {
+        id: "user-" + Date.now(),
+        email,
+        name,
+        password, // In a real app, this would be hashed
+        subscription: "free" as const, // Using const assertion to specify exact literal type
+        emailVerified: false,
+        lastLogin: new Date(),
+        createdAt: new Date(),
+      };
+      
+      // Store in "database"
+      localStorage.setItem("users", JSON.stringify([...existingUsers, newUser]));
+      
+      // Remove password before storing in user state
+      const { password: _, ...userWithoutPassword } = newUser;
+      
+      setUser(userWithoutPassword);
+      localStorage.setItem("user", JSON.stringify(userWithoutPassword));
+      
+      // Send verification email
+      await sendVerificationEmail(email);
       
       toast({
         title: "Registration successful",
@@ -91,134 +153,190 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       navigate("/dashboard");
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Registration failed",
-        description: error.message || "An error occurred during registration",
+        description: error instanceof Error ? error.message : "An error occurred during registration",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const logout = async () => {
-    try {
-      await authService.logout();
-      
-      toast({
-        title: "Logged out",
-        description: "You have been logged out successfully.",
-      });
-      
-      navigate("/");
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "There was an error logging out",
-        variant: "destructive",
-      });
-    }
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("user");
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully.",
+    });
+    navigate("/");
   };
 
   const forgotPassword = async (email: string) => {
+    setIsLoading(true);
     try {
-      await authService.forgotPassword(email);
+      // Check if user exists
+      const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
+      const userExists = existingUsers.some((u: any) => u.email === email);
       
+      if (!userExists) {
+        throw new Error("Email not found");
+      }
+      
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      // In a real app, send reset link via email
       toast({
         title: "Password reset email sent",
         description: `We've sent a password reset link to ${email}`,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "There was an error sending the password reset email.",
+        description: error instanceof Error ? error.message : "There was an error sending the password reset email.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const resetPassword = async (token: string, password: string) => {
+    setIsLoading(true);
     try {
-      await authService.resetPassword(password);
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       
+      // In a real app, validate token and update password
       toast({
         title: "Password reset successful",
         description: "Your password has been updated. Please log in with your new password.",
       });
       
       navigate("/auth/login");
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "There was an error resetting your password.",
+        description: "There was an error resetting your password.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updateSubscription = async (type: "free" | "premium") => {
-    if (!user || !validateSupabaseClient()) return;
-    
-    try {
-      await authService.updateSubscription(user.id, type);
+  const updateSubscription = (type: "free" | "premium") => {
+    if (user) {
+      const updatedUser = { ...user, subscription: type };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
       
-      // Update local user state
-      if (user) {
-        user.subscription = type;
-      }
+      // Update in "database"
+      const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
+      localStorage.setItem("users", JSON.stringify(
+        existingUsers.map((u: any) => u.id === user.id ? { ...u, subscription: type } : u)
+      ));
       
       toast({
         title: `Subscription updated to ${type}`,
         description: type === "premium" ? "You now have access to premium features!" : "Your subscription has been updated.",
       });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "There was an error updating your subscription",
-        variant: "destructive",
-      });
     }
+  };
+
+  const sendVerificationEmail = async (email: string) => {
+    // In a real app, this would send an actual email
+    console.log(`Sending verification email to ${email}`);
+    
+    // Generate verification token
+    const token = Math.random().toString(36).substring(2, 15);
+    
+    // Store token in localStorage for demo purposes
+    const verificationTokens = JSON.parse(localStorage.getItem("verificationTokens") || "{}");
+    verificationTokens[email] = token;
+    localStorage.setItem("verificationTokens", JSON.stringify(verificationTokens));
+    
+    toast({
+      title: "Verification email sent",
+      description: `We've sent a verification link to ${email}`,
+    });
+    
+    return token;
   };
 
   const verifyEmail = async (token: string) => {
-    // This is handled by Supabase automatically via email verification link
-    toast({
-      title: "Email verified",
-      description: "Your email has been successfully verified. You can now log in.",
-    });
-    navigate("/auth/login");
+    setIsLoading(true);
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      if (!user) {
+        throw new Error("User not logged in");
+      }
+      
+      // Get verification tokens from localStorage
+      const verificationTokens = JSON.parse(localStorage.getItem("verificationTokens") || "{}");
+      
+      if (verificationTokens[user.email] !== token) {
+        throw new Error("Invalid verification token");
+      }
+      
+      // Update user emailVerified status
+      const updatedUser = { ...user, emailVerified: true };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      
+      // Update in "database"
+      const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
+      localStorage.setItem("users", JSON.stringify(
+        existingUsers.map((u: any) => u.id === user.id ? { ...u, emailVerified: true } : u)
+      ));
+      
+      // Remove verification token
+      delete verificationTokens[user.email];
+      localStorage.setItem("verificationTokens", JSON.stringify(verificationTokens));
+      
+      toast({
+        title: "Email verified",
+        description: "Your email has been successfully verified.",
+      });
+    } catch (error) {
+      toast({
+        title: "Verification failed",
+        description: error instanceof Error ? error.message : "There was an error verifying your email.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resendVerificationEmail = async () => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "User not logged in",
-        variant: "destructive",
-      });
-      return;
-    }
-    
+    setIsLoading(true);
     try {
-      await authService.resendVerificationEmail(user.email);
+      if (!user) {
+        throw new Error("User not logged in");
+      }
       
-      toast({
-        title: "Verification email sent",
-        description: `We've sent a verification link to ${user.email}`,
-      });
-    } catch (error: any) {
+      await sendVerificationEmail(user.email);
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "There was an error sending the verification email.",
+        description: error instanceof Error ? error.message : "There was an error sending the verification email.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const value = {
     user,
     isLoading,
-    isAuthenticated,
-    supabase,
+    isAuthenticated: !!user,
     login,
     register,
     logout,
@@ -229,20 +347,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resendVerificationEmail,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {!isSupabaseConfigured && !isLoading && (
-        <div className="fixed top-20 inset-x-0 p-4 z-50">
-          <Alert variant="destructive" className="max-w-3xl mx-auto">
-            <AlertTitle>Supabase Configuration Missing</AlertTitle>
-            <AlertDescription>
-              The app requires Supabase environment variables to function properly. 
-              Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

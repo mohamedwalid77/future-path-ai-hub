@@ -2,16 +2,14 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, AlertTriangle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Check } from "lucide-react";
 
 interface SkillsListProps {
   skills: string[];
   isLoading?: boolean;
-  hasError?: boolean;
 }
 
-const SkillsList: React.FC<SkillsListProps> = ({ skills, isLoading = false, hasError = false }) => {
+const SkillsList: React.FC<SkillsListProps> = ({ skills, isLoading = false }) => {
   // Group skills by category
   const skillCategories = {
     "Programming Languages": ["javascript", "typescript", "python", "java", "c#", "c++", "ruby", "go", "php", "swift", "kotlin"],
@@ -69,39 +67,6 @@ const SkillsList: React.FC<SkillsListProps> = ({ skills, isLoading = false, hasE
               <div className="h-4 bg-primary/20 rounded w-1/2 mb-2.5"></div>
               <div className="h-4 bg-primary/20 rounded w-2/3"></div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (hasError) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold text-destructive flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Analysis Failed
-          </CardTitle>
-          <CardDescription>
-            We couldn't analyze your CV successfully.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              There was an error processing your CV. This could be due to the format or content of your PDF file.
-            </AlertDescription>
-          </Alert>
-          <div className="text-sm text-muted-foreground space-y-2">
-            <p>Possible reasons for failure:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>The PDF may contain security restrictions</li>
-              <li>The file may be corrupted or have an unusual format</li>
-              <li>The text in the PDF might not be properly extractable</li>
-              <li>The CV may not contain enough recognizable text</li>
-            </ul>
-            <p className="mt-4">Please try uploading a different CV file or ensure your PDF is not password-protected.</p>
           </div>
         </CardContent>
       </Card>

@@ -2,8 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Building, MapPin, BarChart2, Tag, AlertTriangle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ExternalLink, Building, MapPin, BarChart2, Tag } from "lucide-react";
 
 interface JobMatch {
   id?: number;
@@ -26,10 +25,9 @@ interface JobMatch {
 interface JobMatchesListProps {
   jobMatches: JobMatch[];
   isLoading?: boolean;
-  hasError?: boolean;
 }
 
-const JobMatchesList: React.FC<JobMatchesListProps> = ({ jobMatches, isLoading = false, hasError = false }) => {
+const JobMatchesList: React.FC<JobMatchesListProps> = ({ jobMatches, isLoading = false }) => {
   // Normalize job data to handle both formats
   const normalizedJobs = jobMatches.map(job => {
     return {
@@ -61,32 +59,6 @@ const JobMatchesList: React.FC<JobMatchesListProps> = ({ jobMatches, isLoading =
               <div className="h-20 bg-primary/10 rounded w-full mb-2.5"></div>
               <div className="h-20 bg-primary/10 rounded w-full"></div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  if (hasError) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold text-destructive flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Job Matching Failed
-          </CardTitle>
-          <CardDescription>
-            We couldn't find matching jobs for your CV.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              There was an error while trying to find jobs that match your skills.
-            </AlertDescription>
-          </Alert>
-          <div className="text-sm text-muted-foreground">
-            <p>We were unable to extract enough information from your CV to suggest relevant job matches. Please try uploading a different CV with more detailed information about your skills and experience.</p>
           </div>
         </CardContent>
       </Card>
