@@ -61,9 +61,17 @@ export const authService = {
         if (error.message === "Invalid login credentials") {
           if (await this.emailExists(email)) {
             // Email exists but credentials are wrong - could be wrong password or unconfirmed email
-            const { data: userData } = await supabase.auth.admin?.getUserByEmail(email) || { data: null };
+            // Check if email is verified without using admin API
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+              email,
+              password: `temp-${Math.random().toString(36).substring(2, 10)}`, // Random password just to check email status
+              options: {
+                emailRedirectTo: `${window.location.origin}/auth/callback`
+              }
+            });
             
-            if (userData && !userData.email_confirmed_at) {
+            // If we get a "User already registered" error, the email exists but may not be verified
+            if (signUpError?.message?.includes("already registered")) {
               throw new Error("Email not verified. Please check your inbox for the verification link or request a new one.");
             }
           }
