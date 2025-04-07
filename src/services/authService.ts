@@ -16,6 +16,11 @@ export const authService = {
         .single();
         
       if (error) {
+        if (error.code === '42P01') {  // Relation does not exist
+          console.error('The profiles table does not exist:', error);
+          localStorage.setItem("supabase_profiles_error", "true");
+          return null;
+        }
         throw error;
       }
       
@@ -77,20 +82,50 @@ export const authService = {
 
     // After signup, create a profile for the user
     if (data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            id: data.user.id,
-            name,
-            email,
-            subscription: 'free',
-            created_at: new Date().toISOString(),
-          },
-        ]);
+      try {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: data.user.id,
+              name,
+              email,
+              subscription: 'free',
+              created_at: new Date().toISOString(),
+            },
+          ]);
 
-      if (profileError) {
-        throw profileError;
+        if (profileError) {
+          // Check if this is a "relation does not exist" error
+          if (profileError.code === '42P01') {
+            console.error('The profiles table does not exist:', profileError);
+            localStorage.setItem("supabase_profiles_error", "true");
+            return data.user ? {
+              id: data.user.id,
+              email: email,
+              name: name,
+              subscription: 'free',
+              emailVerified: false,
+              lastLogin: new Date(),
+              createdAt: new Date(),
+            } : null;
+          }
+          throw profileError;
+        }
+      } catch (err) {
+        console.error('Error creating user profile:', err);
+        // If the table doesn't exist but we caught a different error
+        localStorage.setItem("supabase_profiles_error", "true");
+        // Return a minimal user object to prevent crashing
+        return data.user ? {
+          id: data.user.id,
+          email: email,
+          name: name,
+          subscription: 'free',
+          emailVerified: false,
+          lastLogin: new Date(),
+          createdAt: new Date(),
+        } : null;
       }
       
       return this.getUserProfile(data.user.id);
