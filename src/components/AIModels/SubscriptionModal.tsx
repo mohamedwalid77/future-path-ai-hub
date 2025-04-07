@@ -13,7 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, CreditCard, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
 
 type SubscriptionModalProps = {
   isOpen: boolean;
@@ -22,34 +21,16 @@ type SubscriptionModalProps = {
 
 const SubscriptionModal = ({ isOpen, onClose }: SubscriptionModalProps) => {
   const { updateSubscription } = useAuth();
-  const { toast } = useToast();
   const [isProcessing, setIsProcessing] = React.useState(false);
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = () => {
     setIsProcessing(true);
-    try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Update user subscription
-      await updateSubscription("premium");
-      
-      toast({
-        title: "Subscription successful!",
-        description: "You now have access to premium features.",
-      });
-      
-      onClose();
-    } catch (error) {
-      console.error("Subscription error:", error);
-      toast({
-        title: "Subscription failed",
-        description: "There was an error processing your subscription. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
+    // Simulate payment processing
+    setTimeout(() => {
+      updateSubscription("premium");
       setIsProcessing(false);
-    }
+      onClose();
+    }, 2000);
   };
 
   return (

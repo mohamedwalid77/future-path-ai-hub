@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -180,10 +181,6 @@ export const RegisterForm = () => {
     setError(null);
     try {
       await register(values.name, values.email, values.password);
-      
-      // After successful registration, set a flag to show verification message on login page
-      sessionStorage.setItem("email_verification_required", "true");
-      
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

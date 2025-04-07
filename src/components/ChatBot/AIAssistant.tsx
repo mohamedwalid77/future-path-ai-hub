@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, X, Send, User, Bot } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
 import {
   Sheet,
   SheetContent,
@@ -19,6 +18,21 @@ type Message = {
   timestamp: Date;
 };
 
+const getResponse = (message: string): string => {
+  const responses = [
+    "I can help you explore AI career paths based on your skills and interests.",
+    "The AI industry is growing rapidly! There are many opportunities in machine learning, data science, and AI ethics.",
+    "Our premium model offers personalized career guidance tailored to your specific background.",
+    "You might want to check out our Tech News section for the latest industry developments.",
+    "Have you tried our free career assessment tool yet? It can give you a starting point for your AI journey.",
+    "Many successful AI professionals started with a strong foundation in mathematics and programming.",
+    "The most in-demand skills right now include machine learning, Python programming, and data analysis.",
+    "Our subscription plan gives you access to personalized learning paths and interview preparation.",
+  ];
+  
+  return responses[Math.floor(Math.random() * responses.length)];
+};
+
 const AIAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -30,7 +44,6 @@ const AIAssistant = () => {
       timestamp: new Date(),
     },
   ]);
-  const [isLoading, setIsLoading] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -42,62 +55,8 @@ const AIAssistant = () => {
     scrollToBottom();
   }, [messages]);
   
-  const fetchAIResponse = async (userMessage: string) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY || ""}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "system",
-              content: "You are an AI career assistant specialized in helping users navigate careers in AI and technology. Provide helpful, concise advice about AI careers, skills needed, and industry trends. Keep responses under 150 words."
-            },
-            ...messages.map(msg => ({
-              role: msg.sender === "user" ? "user" : "assistant",
-              content: msg.content
-            })),
-            { role: "user", content: userMessage }
-          ],
-          max_tokens: 300,
-          temperature: 0.7,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || "Failed to get AI response");
-      }
-
-      const data = await response.json();
-      return data.choices[0].message.content.trim();
-    } catch (error: any) {
-      console.error("Error fetching AI response:", error);
-      
-      // If API key is missing
-      if (error.message.includes("API key")) {
-        toast({
-          title: "API Key Missing",
-          description: "Please set your OpenAI API key in the environment variables (VITE_OPENAI_API_KEY).",
-          variant: "destructive",
-        });
-        return "I'm having trouble connecting to my brain right now. Please check the API key configuration.";
-      }
-      
-      // Fallback response
-      return "I apologize, but I'm having trouble processing your request right now. Please try again later.";
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = () => {
+    if (!input.trim()) return;
     
     // Add user message
     const userMessage: Message = {
@@ -110,31 +69,17 @@ const AIAssistant = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     
-    try {
-      // Fetch response from OpenAI
-      const aiResponse = await fetchAIResponse(input);
-      
+    // Simulate bot thinking
+    setTimeout(() => {
       const botMessage: Message = {
         id: `bot-${Date.now()}`,
-        content: aiResponse,
+        content: getResponse(input),
         sender: "bot",
         timestamp: new Date(),
       };
       
       setMessages((prev) => [...prev, botMessage]);
-    } catch (error) {
-      console.error("Error in chat flow:", error);
-      
-      // Add fallback message if there's an error
-      const errorMessage: Message = {
-        id: `bot-${Date.now()}`,
-        content: "Sorry, I encountered an error while processing your request. Please try again later.",
-        sender: "bot",
-        timestamp: new Date(),
-      };
-      
-      setMessages((prev) => [...prev, errorMessage]);
-    }
+    }, 1000);
   };
   
   return (
@@ -221,15 +166,6 @@ const AIAssistant = () => {
               </div>
             ))}
             <div ref={messagesEndRef} />
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-muted p-3 rounded-lg flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
-                </div>
-              </div>
-            )}
           </div>
           
           <div className="p-4 border-t">
@@ -245,9 +181,8 @@ const AIAssistant = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 className="flex-1"
-                disabled={isLoading}
               />
-              <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+              <Button type="submit" size="icon">
                 <Send className="h-4 w-4" />
               </Button>
             </form>
