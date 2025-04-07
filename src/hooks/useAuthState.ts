@@ -36,22 +36,18 @@ export const useAuthState = () => {
     getInitialSession();
 
     // Set up auth state change listener
-    let subscription: { unsubscribe: () => void } = { unsubscribe: () => {} };
-    
-    if (supabase) {
-      const { data } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          if (event === 'SIGNED_IN' && session) {
-            const userData = await authService.getUserProfile(session.user.id);
-            setUser(userData);
-          } else if (event === 'SIGNED_OUT') {
-            setUser(null);
-          }
+    const { data } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          const userData = await authService.getUserProfile(session.user.id);
+          setUser(userData);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
         }
-      );
-      
-      subscription = data.subscription;
-    }
+      }
+    );
+    
+    const subscription = data.subscription;
 
     // Cleanup subscription
     return () => {

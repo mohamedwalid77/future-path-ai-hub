@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { BrainCircuit, Lock, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 type ModelFeature = {
   name: string;
@@ -57,7 +57,7 @@ const ModelCard = ({
     // Call the provided onUse callback
     onUse();
     
-    // Navigate to the CV analysis page for both premium and free models
+    // Navigate to the CV analysis page
     navigate("/cv-analysis");
   };
 

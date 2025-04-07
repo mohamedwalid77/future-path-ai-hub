@@ -1,3 +1,4 @@
+
 import { supabase, validateSupabaseClient } from '@/lib/supabase';
 import { User } from '@/types/auth';
 import { toast } from '@/components/ui/use-toast';
@@ -112,6 +113,11 @@ export const authService = {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          name: name,
+        }
+      }
     });
 
     if (error) {
