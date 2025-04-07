@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,10 +40,8 @@ const ModelCard = ({
     // Call the provided onUse callback
     onUse();
     
-    // If this is the premium model, navigate to the CV analysis page
-    if (isPremium) {
-      navigate("/cv-analysis");
-    }
+    // Always navigate to the CV analysis page for both premium and free models
+    navigate("/cv-analysis");
   };
 
   return (

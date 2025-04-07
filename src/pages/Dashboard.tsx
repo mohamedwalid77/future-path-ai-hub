@@ -73,7 +73,7 @@ const Dashboard = () => {
         description: `You're now using the ${isPremium ? "Premium" : "Basic"} AI model.`,
       });
       
-      // We don't need to navigate here anymore as it's handled in the ModelCard component
+      // Navigation is now handled directly in the ModelCard component
     }
   };
 
