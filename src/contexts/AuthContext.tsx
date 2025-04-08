@@ -185,25 +185,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       title: "Email verified",
       description: "Your email has been successfully verified. You can now log in.",
     });
-    navigate("/auth/login");
+    navigate("/auth/login?verified=true");
   };
 
-  const resendVerificationEmail = async () => {
-    if (!user) {
+  const verifyEmailWithCode = async (code: string) => {
+    if (!validateSupabaseClient()) {
+      return;
+    }
+    
+    try {
+      await authService.verifyEmailWithCode(code);
+      
+      toast({
+        title: "Email verified",
+        description: "Your email has been successfully verified. You can now log in.",
+      });
+      
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Verification failed",
+        description: error.message || "Failed to verify email with code",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const resendVerificationEmail = async (email?: string) => {
+    if (!user && !email) {
       toast({
         title: "Error",
-        description: "User not logged in",
+        description: "Email is required for verification",
         variant: "destructive",
       });
       return;
     }
     
     try {
-      await authService.resendVerificationEmail(user.email);
+      await authService.resendVerificationEmail(email || user!.email);
       
       toast({
         title: "Verification email sent",
-        description: `We've sent a verification link to ${user.email}`,
+        description: `We've sent a verification link to ${email || user!.email}`,
       });
     } catch (error: any) {
       toast({
@@ -226,6 +250,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetPassword,
     updateSubscription,
     verifyEmail,
+    verifyEmailWithCode,
     resendVerificationEmail,
   };
 

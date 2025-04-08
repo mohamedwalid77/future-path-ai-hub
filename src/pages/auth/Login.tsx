@@ -2,13 +2,17 @@
 import React, { useState, useEffect } from "react";
 import { LoginForm } from "@/components/auth/AuthForms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Mail } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [verifyEmailRequired, setVerifyEmailRequired] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [lastEmail, setLastEmail] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
+  const { resendVerificationEmail } = useAuth();
   
   // Check if user was redirected here after registration or verification
   useEffect(() => {
@@ -16,6 +20,10 @@ const Login = () => {
     const needsVerification = sessionStorage.getItem("email_verification_required");
     if (needsVerification) {
       setVerifyEmailRequired(true);
+      const email = sessionStorage.getItem("last_email");
+      if (email) {
+        setLastEmail(email);
+      }
       sessionStorage.removeItem("email_verification_required");
     }
     
@@ -25,6 +33,12 @@ const Login = () => {
       setEmailVerified(true);
     }
   }, [searchParams]);
+
+  const handleResendVerification = () => {
+    if (lastEmail) {
+      resendVerificationEmail(lastEmail);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0c0c14] cyber-grid p-4">
@@ -49,7 +63,27 @@ const Login = () => {
             <AlertCircle className="h-4 w-4 text-amber-500" />
             <AlertDescription className="text-amber-500">
               <p>Please verify your email before logging in.</p>
-              <p className="text-sm mt-1">Check your inbox for a verification link. If you don't see it, check your spam folder.</p>
+              <p className="text-sm mt-1">Check your inbox for a verification link or code. If you don't see it, check your spam folder.</p>
+              <div className="flex gap-2 mt-2">
+                {lastEmail && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-amber-500 border-amber-500/50 hover:bg-amber-500/10"
+                    onClick={handleResendVerification}
+                  >
+                    <Mail className="h-3 w-3 mr-1" /> Resend Email
+                  </Button>
+                )}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-amber-500 border-amber-500/50 hover:bg-amber-500/10"
+                  asChild
+                >
+                  <Link to="/auth/verify-email">Enter Verification Code</Link>
+                </Button>
+              </div>
             </AlertDescription>
           </Alert>
         )}
