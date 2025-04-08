@@ -1,3 +1,4 @@
+
 import { supabase, validateSupabaseClient, checkDatabaseSetup } from '@/lib/supabase';
 import { User } from '@/types/auth';
 import { toast } from '@/components/ui/use-toast';
@@ -264,32 +265,6 @@ export const authService = {
       }
     } catch (error) {
       console.error("Error updating subscription:", error);
-      throw error;
-    }
-  },
-  
-  // Handle email verification
-  async verifyEmail(token: string): Promise<void> {
-    if (!validateSupabaseClient() || !supabase) {
-      throw new Error("Supabase is not initialized");
-    }
-    
-    try {
-      // For Supabase, the email verification is mostly handled automatically
-      // But we can still check if the verification succeeded
-      const { data, error } = await supabase.auth.getUser();
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Additional logic can be added here if needed
-      console.log("User verified:", data.user);
-      
-      // We also navigate and show a toast on successful verification
-      // This is handled in the VerifyEmail component
-    } catch (error) {
-      console.error("Error verifying email:", error);
       throw error;
     }
   },
