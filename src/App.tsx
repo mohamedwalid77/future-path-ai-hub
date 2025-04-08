@@ -12,6 +12,7 @@ import CVAnalysis from "./pages/CVAnalysis";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import VerifyEmail from "./pages/auth/VerifyEmail";
 import { AuthProvider } from "./contexts/AuthContext";
 import Navbar from "./components/Layout/Navbar";
 import AIAssistant from "./components/ChatBot/AIAssistant";
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/auth/login" element={<Login />} />
               <Route path="/auth/register" element={<Register />} />
               <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+              <Route path="/auth/verify-email" element={<VerifyEmail />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

@@ -269,6 +269,57 @@ export const authService = {
     }
   },
   
+  // Handle email verification
+  async verifyEmail(token: string): Promise<void> {
+    if (!validateSupabaseClient() || !supabase) {
+      throw new Error("Supabase is not initialized");
+    }
+    
+    try {
+      // For Supabase, the email verification is mostly handled automatically
+      // But we can still check if the verification succeeded
+      const { data, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Additional logic can be added here if needed
+      console.log("User verified:", data.user);
+      
+      // We also navigate and show a toast on successful verification
+      // This is handled in the VerifyEmail component
+    } catch (error) {
+      console.error("Error verifying email:", error);
+      throw error;
+    }
+  },
+  
+  // Verify email with manual code
+  async verifyEmailWithCode(code: string): Promise<void> {
+    if (!validateSupabaseClient() || !supabase) {
+      throw new Error("Supabase is not initialized");
+    }
+    
+    try {
+      // In Supabase, there's no direct API for code verification without a link
+      // So we have to use the auth.verifyOtp method
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: code,
+        type: 'email'
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return;
+    } catch (error) {
+      console.error("Error verifying email with code:", error);
+      throw error;
+    }
+  },
+  
   // Resend verification email
   async resendVerificationEmail(email: string): Promise<void> {
     if (!validateSupabaseClient() || !supabase) {
@@ -286,7 +337,7 @@ export const authService = {
     
     toast({
       title: "Verification email sent",
-      description: "Please check your inbox and spam folder for the verification link",
+      description: "Please check your inbox and spam folder for the verification link and code",
     });
   },
   

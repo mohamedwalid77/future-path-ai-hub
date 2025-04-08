@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { checkDatabaseSetup } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "@/components/ui/use-toast";
 
 const Register = () => {
   const [dbSetupError, setDbSetupError] = useState(false);
@@ -43,33 +44,132 @@ const Register = () => {
   }, []);
 
   const copySchemaToClipboard = () => {
-    // Find SQL schema comment in supabase.ts
-    const schemaStart = `-- Check if profiles table exists, if not create it`;
-    const schemaEnd = `ON public.job_matches FOR INSERT`;
+    // Use the actual SQL rather than trying to extract it from the file
+    const sqlSchema = `
+-- Check if profiles table exists, if not create it
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id),
+  name TEXT,
+  email TEXT,
+  subscription TEXT DEFAULT 'free',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Create cv_uploads table
+CREATE TABLE IF NOT EXISTS public.cv_uploads (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) NOT NULL,
+  file_name TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  uploaded_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Create cv_analysis table
+CREATE TABLE IF NOT EXISTS public.cv_analysis (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  cv_id UUID REFERENCES cv_uploads(id) NOT NULL,
+  skills JSONB,
+  summary TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Create job_matches table
+CREATE TABLE IF NOT EXISTS public.job_matches (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  cv_id UUID REFERENCES cv_uploads(id) NOT NULL,
+  job_title TEXT NOT NULL,
+  company TEXT,
+  match_score INTEGER,
+  job_description TEXT,
+  match_details JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Set up Row Level Security (RLS) policies
+
+-- Profiles: Users can read and update only their own profiles
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own profile" 
+ON public.profiles FOR SELECT 
+USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" 
+ON public.profiles FOR UPDATE 
+USING (auth.uid() = id);
+
+-- CV Uploads: Users can CRUD only their own CV uploads
+ALTER TABLE public.cv_uploads ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own CV uploads" 
+ON public.cv_uploads FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own CV uploads" 
+ON public.cv_uploads FOR INSERT 
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own CV uploads" 
+ON public.cv_uploads FOR UPDATE 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own CV uploads" 
+ON public.cv_uploads FOR DELETE 
+USING (auth.uid() = user_id);
+
+-- CV Analysis: Users can CRUD only analyses for their own CVs
+ALTER TABLE public.cv_analysis ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own CV analyses" 
+ON public.cv_analysis FOR SELECT 
+USING (EXISTS (
+  SELECT 1 FROM public.cv_uploads
+  WHERE cv_uploads.id = cv_analysis.cv_id
+  AND cv_uploads.user_id = auth.uid()
+));
+
+CREATE POLICY "Users can insert CV analyses for own CVs" 
+ON public.cv_analysis FOR INSERT 
+WITH CHECK (EXISTS (
+  SELECT 1 FROM public.cv_uploads
+  WHERE cv_uploads.id = cv_analysis.cv_id
+  AND cv_uploads.user_id = auth.uid()
+));
+
+-- Job Matches: Users can CRUD only job matches for their own CVs
+ALTER TABLE public.job_matches ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own job matches" 
+ON public.job_matches FOR SELECT 
+USING (EXISTS (
+  SELECT 1 FROM public.cv_uploads
+  WHERE cv_uploads.id = job_matches.cv_id
+  AND cv_uploads.user_id = auth.uid()
+));
+
+CREATE POLICY "Users can insert job matches for own CVs" 
+ON public.job_matches FOR INSERT 
+WITH CHECK (EXISTS (
+  SELECT 1 FROM public.cv_uploads
+  WHERE cv_uploads.id = job_matches.cv_id
+  AND cv_uploads.user_id = auth.uid()
+));`;
     
-    fetch('/src/lib/supabase.ts')
-      .then(response => response.text())
-      .then(text => {
-        const start = text.indexOf(schemaStart);
-        const end = text.indexOf(schemaEnd) + schemaEnd.length;
-        
-        if (start !== -1 && end !== -1) {
-          const schema = text.substring(start, end);
-          navigator.clipboard.writeText(schema)
-            .then(() => {
-              alert("SQL Schema copied to clipboard!");
-            })
-            .catch(err => {
-              console.error('Failed to copy schema:', err);
-              alert("Failed to copy. Please manually copy from src/lib/supabase.ts");
-            });
-        } else {
-          alert("Couldn't find SQL schema. Please manually copy from src/lib/supabase.ts");
-        }
+    navigator.clipboard.writeText(sqlSchema)
+      .then(() => {
+        toast({
+          title: "SQL Schema copied",
+          description: "SQL schema has been copied to your clipboard.",
+          variant: "default" // Changed from "success" to "default"
+        });
       })
       .catch(err => {
-        console.error('Error fetching supabase.ts:', err);
-        alert("Error fetching schema. Please manually copy from src/lib/supabase.ts");
+        console.error('Failed to copy schema:', err);
+        toast({
+          title: "Copy failed",
+          description: "Please manually copy the SQL from the code below.",
+          variant: "destructive"
+        });
       });
   };
 
