@@ -160,7 +160,7 @@ WITH CHECK (EXISTS (
         toast({
           title: "SQL Schema copied",
           description: "SQL schema has been copied to your clipboard.",
-          variant: "success"
+          variant: "default" // Changed from "success" to "default"
         });
       })
       .catch(err => {
