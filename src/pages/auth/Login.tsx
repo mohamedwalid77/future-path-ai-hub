@@ -1,21 +1,30 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { LoginForm } from "@/components/auth/AuthForms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 
 const Login = () => {
   const [verifyEmailRequired, setVerifyEmailRequired] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [searchParams] = useSearchParams();
   
-  // Check if user was redirected here after registration
-  React.useEffect(() => {
+  // Check if user was redirected here after registration or verification
+  useEffect(() => {
+    // Check for registration redirect
     const needsVerification = sessionStorage.getItem("email_verification_required");
     if (needsVerification) {
       setVerifyEmailRequired(true);
       sessionStorage.removeItem("email_verification_required");
     }
-  }, []);
+    
+    // Check for verified flag from email verification
+    const verified = searchParams.get("verified");
+    if (verified === "true") {
+      setEmailVerified(true);
+    }
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0c0c14] cyber-grid p-4">
@@ -25,6 +34,15 @@ const Login = () => {
           <h1 className="text-3xl font-bold text-gradient">Luminova AI</h1>
           <p className="text-muted-foreground mt-2">Unlock your career potential with AI</p>
         </div>
+        
+        {emailVerified && (
+          <Alert className="mb-4 bg-green-500/10 border-green-500/30">
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <AlertDescription className="text-green-500">
+              <p>Your email has been successfully verified! You can now log in.</p>
+            </AlertDescription>
+          </Alert>
+        )}
         
         {verifyEmailRequired && (
           <Alert className="mb-4 bg-amber-500/10 border-amber-500/50">
