@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { toast } from '@/components/ui/use-toast';
 
@@ -182,14 +181,41 @@ export const checkDatabaseSetup = async (): Promise<boolean> => {
       
     if (profilesError) {
       console.error('Error checking profiles table:', profilesError);
+      
+      // Check specific error codes for table not existing
       if (profilesError.code === '42P01') { // Table does not exist
+        localStorage.setItem('supabase_profiles_error', 'true');
         toast({
           title: "Database Setup Required",
-          description: "The database tables need to be created. Please refer to the SQL in src/lib/supabase.ts",
+          description: "The database tables need to be created. Please run the SQL in the Supabase SQL Editor.",
           variant: "destructive",
         });
         return false;
       }
+      
+      // Other errors
+      toast({
+        title: "Database Connection Error",
+        description: profilesError.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    // Next check cv_uploads table
+    const { error: cvUploadsError } = await supabase
+      .from('cv_uploads')
+      .select('id')
+      .limit(1);
+      
+    if (cvUploadsError && cvUploadsError.code === '42P01') {
+      localStorage.setItem('supabase_profiles_error', 'true');
+      toast({
+        title: "Database Setup Required",
+        description: "CV Uploads table is missing. Please run the complete SQL setup.",
+        variant: "destructive",
+      });
+      return false;
     }
     
     return true;
