@@ -1,5 +1,5 @@
 
-import { supabase, validateSupabaseClient } from '@/lib/supabase';
+import { supabase, validateSupabaseClient, checkDatabaseSetup } from '@/lib/supabase';
 import { User } from '@/types/auth';
 import { toast } from '@/components/ui/use-toast';
 
@@ -18,7 +18,11 @@ export const authService = {
       if (error) {
         if (error.code === '42P01') {  // Relation does not exist
           console.error('The profiles table does not exist:', error);
-          localStorage.setItem("supabase_profiles_error", "true");
+          toast({
+            title: "Database Setup Required",
+            description: "The database tables need to be created. Please check the SQL in src/lib/supabase.ts",
+            variant: "destructive",
+          });
           return null;
         }
         throw error;
@@ -44,6 +48,11 @@ export const authService = {
     }
   },
   
+  // Check if database is properly set up
+  async checkDatabaseSetup(): Promise<boolean> {
+    return checkDatabaseSetup();
+  },
+  
   // Login with email and password
   async login(email: string, password: string): Promise<User | null> {
     if (!validateSupabaseClient() || !supabase) {
@@ -51,31 +60,18 @@ export const authService = {
     }
     
     try {
+      // First check if database is set up
+      const isDbSetup = await this.checkDatabaseSetup();
+      if (!isDbSetup) {
+        throw new Error("Database not properly set up. Please check the SQL in src/lib/supabase.ts");
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        // Check for specific error types to provide better messages
-        if (error.message === "Invalid login credentials") {
-          if (await this.emailExists(email)) {
-            // Email exists but credentials are wrong - could be wrong password or unconfirmed email
-            // Check if email is verified without using admin API
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-              email,
-              password: `temp-${Math.random().toString(36).substring(2, 10)}`, // Random password just to check email status
-              options: {
-                emailRedirectTo: `${window.location.origin}/auth/callback`
-              }
-            });
-            
-            // If we get a "User already registered" error, the email exists but may not be verified
-            if (signUpError?.message?.includes("already registered")) {
-              throw new Error("Email not verified. Please check your inbox for the verification link or request a new one.");
-            }
-          }
-        }
         throw error;
       }
 
@@ -107,6 +103,16 @@ export const authService = {
   async register(name: string, email: string, password: string): Promise<User | null> {
     if (!validateSupabaseClient() || !supabase) {
       throw new Error("Supabase is not initialized");
+    }
+    
+    // First check if database is set up
+    const isDbSetup = await this.checkDatabaseSetup();
+    if (!isDbSetup) {
+      toast({
+        title: "Database Setup Required",
+        description: "The database tables need to be created. Please check the SQL in src/lib/supabase.ts",
+        variant: "destructive",
+      });
     }
     
     // Sign up the user with Supabase auth
@@ -143,7 +149,13 @@ export const authService = {
           // Check if this is a "relation does not exist" error
           if (profileError.code === '42P01') {
             console.error('The profiles table does not exist:', profileError);
-            localStorage.setItem("supabase_profiles_error", "true");
+            toast({
+              title: "Database Setup Required",
+              description: "The database tables need to be created. Please check the SQL in src/lib/supabase.ts",
+              variant: "destructive",
+            });
+            
+            // Return basic user even though profile couldn't be created
             return data.user ? {
               id: data.user.id,
               email: email,
@@ -158,8 +170,12 @@ export const authService = {
         }
       } catch (err) {
         console.error('Error creating user profile:', err);
-        // If the table doesn't exist but we caught a different error
-        localStorage.setItem("supabase_profiles_error", "true");
+        toast({
+          title: "Error Creating Profile",
+          description: "Please ensure database tables are created properly.",
+          variant: "destructive",
+        });
+        
         // Return a minimal user object to prevent crashing
         return data.user ? {
           id: data.user.id,
@@ -238,9 +254,11 @@ export const authService = {
         // Check if this is a "relation does not exist" error
         if (error.code === '42P01') {
           console.error('The profiles table does not exist:', error);
-          localStorage.setItem("supabase_profiles_error", "true");
-          
-          // In demo mode, just return without erroring
+          toast({
+            title: "Database Setup Required",
+            description: "The database tables need to be created. Please check the SQL in src/lib/supabase.ts",
+            variant: "destructive",
+          });
           return;
         }
         throw error;
@@ -270,5 +288,95 @@ export const authService = {
       title: "Verification email sent",
       description: "Please check your inbox and spam folder for the verification link",
     });
+  },
+  
+  // Get user's CV uploads
+  async getUserCVUploads(userId: string) {
+    if (!validateSupabaseClient() || !supabase) {
+      throw new Error("Supabase is not initialized");
+    }
+    
+    const { data, error } = await supabase
+      .from('cv_uploads')
+      .select('*')
+      .eq('user_id', userId)
+      .order('uploaded_at', { ascending: false });
+      
+    if (error) {
+      if (error.code === '42P01') {  // Relation does not exist
+        console.error('The cv_uploads table does not exist:', error);
+        toast({
+          title: "Database Setup Required",
+          description: "The CV uploads table needs to be created. Please check the SQL in src/lib/supabase.ts",
+          variant: "destructive",
+        });
+        return [];
+      }
+      throw error;
+    }
+    
+    return data || [];
+  },
+  
+  // Get job matches for a specific CV
+  async getJobMatches(cvId: string) {
+    if (!validateSupabaseClient() || !supabase) {
+      throw new Error("Supabase is not initialized");
+    }
+    
+    const { data, error } = await supabase
+      .from('job_matches')
+      .select('*')
+      .eq('cv_id', cvId)
+      .order('match_score', { ascending: false });
+      
+    if (error) {
+      if (error.code === '42P01') {  // Relation does not exist
+        console.error('The job_matches table does not exist:', error);
+        toast({
+          title: "Database Setup Required",
+          description: "The job matches table needs to be created. Please check the SQL in src/lib/supabase.ts",
+          variant: "destructive",
+        });
+        return [];
+      }
+      throw error;
+    }
+    
+    return data || [];
+  },
+  
+  // Get CV analysis for a specific CV
+  async getCVAnalysis(cvId: string) {
+    if (!validateSupabaseClient() || !supabase) {
+      throw new Error("Supabase is not initialized");
+    }
+    
+    const { data, error } = await supabase
+      .from('cv_analysis')
+      .select('*')
+      .eq('cv_id', cvId)
+      .single();
+      
+    if (error) {
+      if (error.code === '42P01') {  // Relation does not exist
+        console.error('The cv_analysis table does not exist:', error);
+        toast({
+          title: "Database Setup Required",
+          description: "The CV analysis table needs to be created. Please check the SQL in src/lib/supabase.ts",
+          variant: "destructive",
+        });
+        return null;
+      }
+      
+      // If no records found, it's ok - just means no analysis yet
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      
+      throw error;
+    }
+    
+    return data;
   }
 };

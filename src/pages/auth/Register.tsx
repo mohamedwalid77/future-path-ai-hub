@@ -1,21 +1,32 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { RegisterForm } from "@/components/auth/AuthForms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Database } from "lucide-react";
 import { Link } from "react-router-dom";
+import { checkDatabaseSetup } from "@/lib/supabase";
 
 const Register = () => {
   const [dbSetupError, setDbSetupError] = useState(false);
 
   // Check for error in localStorage that might be set by authService
-  React.useEffect(() => {
+  useEffect(() => {
     const profilesError = localStorage.getItem("supabase_profiles_error");
     if (profilesError) {
       setDbSetupError(true);
       // Clear the error flag after showing the message
       localStorage.removeItem("supabase_profiles_error");
     }
+    
+    // Also check database setup directly
+    const checkDbSetup = async () => {
+      const isSetup = await checkDatabaseSetup();
+      if (!isSetup) {
+        setDbSetupError(true);
+      }
+    };
+    
+    checkDbSetup();
   }, []);
 
   return (
@@ -31,12 +42,20 @@ const Register = () => {
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <p>Database setup incomplete. The "profiles" table is missing.</p>
-              <p className="mt-2">Please make sure you have set up the Supabase database properly by:</p>
+              <p className="font-semibold">Database Setup Required</p>
+              <p className="mt-2">The database tables need to be created. Please follow these steps:</p>
               <ol className="list-decimal pl-5 mt-2 space-y-1">
-                <li>Creating a "profiles" table with fields: id, name, email, subscription, created_at</li>
-                <li>Setting up proper permissions for the table</li>
+                <li>Go to your Supabase project dashboard</li>
+                <li>Navigate to the SQL Editor</li>
+                <li>Copy the SQL from <code>src/lib/supabase.ts</code></li>
+                <li>Run the SQL script to create all required tables</li>
               </ol>
+              <div className="flex items-center mt-3 p-2 bg-red-950/50 rounded">
+                <Database className="h-4 w-4 mr-2" />
+                <span className="text-sm">
+                  Required tables: profiles, cv_uploads, cv_analysis, job_matches
+                </span>
+              </div>
               <p className="mt-2">
                 <Link to="/auth/login" className="underline text-primary">
                   Return to login
