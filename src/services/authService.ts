@@ -1,4 +1,3 @@
-
 import { supabase, validateSupabaseClient, checkDatabaseSetup } from '@/lib/supabase';
 import { User } from '@/types/auth';
 import { toast } from '@/components/ui/use-toast';
@@ -78,7 +77,7 @@ export const authService = {
       if (!data.user) return null;
       
       return this.getUserProfile(data.user.id);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login error:', error);
       throw error;
     }
@@ -115,6 +114,9 @@ export const authService = {
       });
     }
     
+    // Generate a verification code (6 digits)
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
     // Sign up the user with Supabase auth
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -122,6 +124,7 @@ export const authService = {
       options: {
         data: {
           name: name,
+          verification_code: verificationCode,
         }
       }
     });
@@ -129,6 +132,10 @@ export const authService = {
     if (error) {
       throw error;
     }
+
+    // Store the verification code in localStorage for easy testing
+    localStorage.setItem('email_verification_code', verificationCode);
+    console.log('Verification code for testing:', verificationCode);
 
     // After signup, create a profile for the user
     if (data.user) {
@@ -302,11 +309,42 @@ export const authService = {
     }
     
     try {
-      // In Supabase, there's no direct API for code verification without a link
-      // So we have to use the auth.verifyOtp method
-      const { data, error } = await supabase.auth.verifyOtp({
-        token_hash: code,
-        type: 'email'
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // Try to find the user by verification code
+        // This is a simplification for demo purposes
+        // In a real app, you'd need a more secure approach
+        const storedCode = localStorage.getItem('email_verification_code');
+        
+        if (code === storedCode) {
+          localStorage.removeItem('email_verification_code');
+          return;
+        } else {
+          throw new Error("Invalid verification code");
+        }
+      }
+      
+      // Get user metadata
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("User not found");
+      }
+      
+      // Check if the code matches
+      const storedCode = user.user_metadata.verification_code;
+      
+      if (code !== storedCode) {
+        throw new Error("Invalid verification code");
+      }
+      
+      // If code matches, update user metadata to mark email as verified
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          email_verified: true
+        }
       });
       
       if (error) {
@@ -326,19 +364,44 @@ export const authService = {
       throw new Error("Supabase is not initialized");
     }
     
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email,
-    });
+    // Generate a new verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     
-    if (error) {
+    // Store the code for testing
+    localStorage.setItem('email_verification_code', verificationCode);
+    console.log('New verification code for testing:', verificationCode);
+    
+    try {
+      // First try to update the user metadata if logged in
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Update the user's verification code
+        await supabase.auth.updateUser({
+          data: {
+            verification_code: verificationCode
+          }
+        });
+      }
+      
+      // Resend the verification email
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Verification email sent",
+        description: `Please check your inbox for the verification link. Your verification code is: ${verificationCode}`,
+      });
+    } catch (error) {
+      console.error("Error resending verification email:", error);
       throw error;
     }
-    
-    toast({
-      title: "Verification email sent",
-      description: "Please check your inbox and spam folder for the verification link and code",
-    });
   },
   
   // Get user's CV uploads

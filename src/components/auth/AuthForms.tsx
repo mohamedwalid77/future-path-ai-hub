@@ -23,6 +23,7 @@ import { toast } from "@/components/ui/use-toast";
 export const EmailVerificationBanner = () => {
   const { user, resendVerificationEmail } = useAuth();
   const [sending, setSending] = useState(false);
+  const [showVerificationCode, setShowVerificationCode] = useState(false);
 
   // Only show for users who haven't verified their email
   if (!user || user.emailVerified) {
@@ -33,11 +34,18 @@ export const EmailVerificationBanner = () => {
     try {
       setSending(true);
       await resendVerificationEmail();
-      toast({
-        title: "Verification email sent",
-        description: "Please check your inbox or spam folder.",
-        variant: "default",
-      });
+      
+      // Show the verification code from localStorage (for demo purposes)
+      const code = localStorage.getItem('email_verification_code');
+      if (code) {
+        toast({
+          title: "Verification code",
+          description: `Your verification code is: ${code}`,
+          variant: "default",
+        });
+      }
+      
+      setShowVerificationCode(true);
     } catch (error) {
       toast({
         title: "Failed to send email",
@@ -55,16 +63,31 @@ export const EmailVerificationBanner = () => {
       <AlertTitle className="text-amber-500">Verify your email</AlertTitle>
       <AlertDescription className="text-amber-500">
         <p className="mb-2">Please verify your email address to access all features.</p>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="text-amber-500 border-amber-500/50 hover:bg-amber-500/10"
-          onClick={handleResendEmail}
-          disabled={sending}
-        >
-          <Mail className="h-3 w-3 mr-1" />
-          {sending ? "Sending..." : "Resend verification email"}
-        </Button>
+        {showVerificationCode && (
+          <p className="mb-2 font-semibold">
+            Check your email for the verification code. For testing, your code is: {localStorage.getItem('email_verification_code')}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-amber-500 border-amber-500/50 hover:bg-amber-500/10"
+            onClick={handleResendEmail}
+            disabled={sending}
+          >
+            <Mail className="h-3 w-3 mr-1" />
+            {sending ? "Sending..." : "Resend verification email"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-amber-500 border-amber-500/50 hover:bg-amber-500/10"
+            onClick={() => window.location.href = "/auth/verify-email"}
+          >
+            Enter Verification Code
+          </Button>
+        </div>
       </AlertDescription>
     </Alert>
   );

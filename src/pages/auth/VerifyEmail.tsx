@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
 
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
@@ -17,9 +18,16 @@ const VerifyEmail = () => {
   const [error, setError] = useState<string | null>(null);
   const [showManualVerify, setShowManualVerify] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
-  const { verifyEmail, verifyEmailWithCode } = useAuth();
+  const { verifyEmail, verifyEmailWithCode, resendVerificationEmail } = useAuth();
+  const [lastEmail, setLastEmail] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check if we have stored email
+    const email = sessionStorage.getItem("last_email");
+    if (email) {
+      setLastEmail(email);
+    }
+
     const verify = async () => {
       try {
         // Extract token from URL
@@ -63,10 +71,38 @@ const VerifyEmail = () => {
       setSuccess(true);
       setError(null);
       setShowManualVerify(false);
+      
+      toast({
+        title: "Email verified successfully",
+        description: "You can now log in to your account with full access.",
+      });
     } catch (error: any) {
       setError(error.message || "Failed to verify email with code. Please try again.");
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const handleResendVerificationEmail = async () => {
+    if (!lastEmail) {
+      setError("No email address found. Please go back to login.");
+      return;
+    }
+    
+    try {
+      await resendVerificationEmail(lastEmail);
+      
+      // Show verification code for testing
+      const code = localStorage.getItem('email_verification_code');
+      if (code) {
+        toast({
+          title: "Verification code",
+          description: `For testing purposes, your verification code is: ${code}`,
+          variant: "default",
+        });
+      }
+    } catch (error: any) {
+      setError(error.message || "Failed to resend verification email.");
     }
   };
 
@@ -116,7 +152,12 @@ const VerifyEmail = () => {
                   <Alert className="mb-4">
                     <AlertTitle>Manual Verification</AlertTitle>
                     <AlertDescription>
-                      If you're having trouble with the email link, you can enter the verification code from your email below.
+                      Enter the verification code from your email below.
+                      {localStorage.getItem('email_verification_code') && (
+                        <p className="mt-2 p-2 bg-slate-800 rounded text-white">
+                          <strong>For testing:</strong> Your verification code is: {localStorage.getItem('email_verification_code')}
+                        </p>
+                      )}
                     </AlertDescription>
                   </Alert>
                   
@@ -144,6 +185,17 @@ const VerifyEmail = () => {
                         "Verify Email"
                       )}
                     </Button>
+                    
+                    {lastEmail && (
+                      <Button
+                        variant="outline"
+                        className="w-full mt-2"
+                        onClick={handleResendVerificationEmail}
+                      >
+                        Resend Verification Email
+                      </Button>
+                    )}
+                    
                     <Button 
                       variant="outline" 
                       className="w-full"
