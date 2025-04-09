@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { LoginForm } from "@/components/auth/AuthForms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2, Mail } from "lucide-react";
+import { AlertCircle, CheckCircle2, Mail, WifiOff } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,11 +11,31 @@ const Login = () => {
   const [verifyEmailRequired, setVerifyEmailRequired] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [lastEmail, setLastEmail] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState(false);
   const [searchParams] = useSearchParams();
   const { resendVerificationEmail } = useAuth();
   
   // Check if user was redirected here after registration or verification
   useEffect(() => {
+    // Check connection to Supabase
+    const checkConnection = async () => {
+      try {
+        // Simple ping to check if we can connect
+        await fetch('https://dzyzxpnpkhsdmgmsuaar.supabase.co', { 
+          method: 'HEAD',
+          mode: 'no-cors',
+          cache: 'no-cache',
+          timeout: 5000
+        });
+        setConnectionError(false);
+      } catch (error) {
+        console.error("Connection error:", error);
+        setConnectionError(true);
+      }
+    };
+    
+    checkConnection();
+    
     // Check for registration redirect
     const needsVerification = sessionStorage.getItem("email_verification_required");
     if (needsVerification) {
@@ -48,6 +68,27 @@ const Login = () => {
           <h1 className="text-3xl font-bold text-gradient">Luminova AI</h1>
           <p className="text-muted-foreground mt-2">Unlock your career potential with AI</p>
         </div>
+
+        {connectionError && (
+          <Alert className="mb-4 bg-red-500/10 border-red-500/50">
+            <WifiOff className="h-4 w-4 text-red-500" />
+            <AlertDescription>
+              <p className="text-red-500 font-medium">Unable to connect to our services</p>
+              <p className="text-sm mt-1 text-red-400">
+                Please check your internet connection and try again. If the problem persists, 
+                our servers might be temporarily unavailable.
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2 text-red-500 border-red-500/50 hover:bg-red-500/10"
+                onClick={() => window.location.reload()}
+              >
+                Retry Connection
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
         
         {emailVerified && (
           <Alert className="mb-4 bg-green-500/10 border-green-500/30">
