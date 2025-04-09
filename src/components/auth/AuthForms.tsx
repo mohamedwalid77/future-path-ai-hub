@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Mail, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Mail, CheckCircle2, Eye, EyeOff, User, Lock } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
 // Email Verification Banner Component
@@ -115,6 +115,8 @@ export const RegisterForm = () => {
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -146,18 +148,34 @@ export const RegisterForm = () => {
       setError(error.message || "Registration failed. Please try again.");
     }
   };
+
+  // Check if password meets criteria
+  const passwordValue = form.watch("password") || "";
+  const hasMinLength = passwordValue.length >= 8;
+  const hasUppercase = /[A-Z]/.test(passwordValue);
+  const hasNumber = /[0-9]/.test(passwordValue);
+  const hasSpecial = /[^A-Za-z0-9]/.test(passwordValue);
   
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel className="text-gray-300">Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your name" {...field} />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <User className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input 
+                    placeholder="John Doe" 
+                    {...field} 
+                    className="pl-10 bg-[#151525] border-[#2a2a40] focus:border-violet-500 h-12"
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -168,9 +186,18 @@ export const RegisterForm = () => {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel className="text-gray-300">Email</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your email" {...field} />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input 
+                    placeholder="you@example.com" 
+                    {...field} 
+                    className="pl-10 bg-[#151525] border-[#2a2a40] focus:border-violet-500 h-12"
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -181,29 +208,100 @@ export const RegisterForm = () => {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel className="text-gray-300">Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="Enter your password" {...field} />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="••••••••" 
+                    {...field} 
+                    className="pl-10 pr-10 bg-[#151525] border-[#2a2a40] focus:border-violet-500 h-12"
+                  />
+                  <button 
+                    type="button"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+        
+        <div className="grid grid-cols-2 gap-2 text-xs text-gray-400">
+          <div className="flex items-center gap-1">
+            <div className={`w-3 h-3 rounded-full ${hasMinLength ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+            <span>Min. 8 characters</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className={`w-3 h-3 rounded-full ${hasUppercase ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+            <span>Uppercase letter</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className={`w-3 h-3 rounded-full ${hasNumber ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+            <span>Number</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className={`w-3 h-3 rounded-full ${hasSpecial ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+            <span>Special character</span>
+          </div>
+        </div>
+        
         <FormField
           control={form.control}
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Confirm Password</FormLabel>
+              <FormLabel className="text-gray-300">Confirm Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="Confirm your password" {...field} />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    placeholder="••••••••" 
+                    {...field} 
+                    className="pl-10 pr-10 bg-[#151525] border-[#2a2a40] focus:border-violet-500 h-12"
+                  />
+                  <button 
+                    type="button"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+        
+        <p className="text-xs text-gray-400 mt-2">
+          By creating an account, you agree to our <a href="#" className="text-violet-400 hover:underline">Terms of Service</a> and <a href="#" className="text-violet-400 hover:underline">Privacy Policy</a>.
+        </p>
+        
         {error && <p className="text-red-500 text-sm">{error}</p>}
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button 
+          type="submit" 
+          className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-white"
+          disabled={isLoading}
+        >
           {isLoading ? "Registering..." : "Register"}
         </Button>
       </form>
@@ -225,6 +323,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export const LoginForm = () => {
   const { login, isLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -245,15 +344,24 @@ export const LoginForm = () => {
   
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel className="text-gray-300">Email</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your email" {...field} />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input 
+                    placeholder="you@example.com" 
+                    {...field} 
+                    className="pl-10 bg-[#151525] border-[#2a2a40] focus:border-violet-500 h-12"
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -264,16 +372,46 @@ export const LoginForm = () => {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel className="text-gray-300">Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="Enter your password" {...field} />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="••••••••" 
+                    {...field} 
+                    className="pl-10 pr-10 bg-[#151525] border-[#2a2a40] focus:border-violet-500 h-12"
+                  />
+                  <button 
+                    type="button"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+        <div className="flex justify-end">
+          <a href="/auth/forgot-password" className="text-violet-400 hover:text-violet-300 text-sm">
+            Forgot password?
+          </a>
+        </div>
         {error && <p className="text-red-500 text-sm">{error}</p>}
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button 
+          type="submit" 
+          className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-white"
+          disabled={isLoading}
+        >
           {isLoading ? "Logging in..." : "Login"}
         </Button>
       </form>
