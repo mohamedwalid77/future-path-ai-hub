@@ -24,17 +24,22 @@ const Login = () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
         
-        await fetch('https://dzyzxpnpkhsdmgmsuaar.supabase.co', { 
-          method: 'HEAD',
-          mode: 'no-cors',
-          cache: 'no-cache',
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        setConnectionError(false);
+        try {
+          await fetch('https://dzyzxpnpkhsdmgmsuaar.supabase.co', { 
+            method: 'HEAD',
+            mode: 'no-cors',
+            cache: 'no-cache',
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          setConnectionError(false);
+        } catch (error) {
+          console.error("Connection error:", error);
+          setConnectionError(true);
+        }
       } catch (error) {
-        console.error("Connection error:", error);
+        console.error("Connection check error:", error);
         setConnectionError(true);
       }
     };

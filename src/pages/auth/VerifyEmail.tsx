@@ -36,17 +36,26 @@ const VerifyEmail = () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
         
-        await fetch('https://dzyzxpnpkhsdmgmsuaar.supabase.co', { 
-          method: 'HEAD',
-          mode: 'no-cors',
-          cache: 'no-cache',
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        setConnectionError(false);
+        try {
+          await fetch('https://dzyzxpnpkhsdmgmsuaar.supabase.co', { 
+            method: 'HEAD',
+            mode: 'no-cors',
+            cache: 'no-cache',
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          setConnectionError(false);
+        } catch (error) {
+          console.error("Connection error:", error);
+          setConnectionError(true);
+          setVerifying(false);
+          setShowManualVerify(true);
+          setError("Connection error. Please check your internet connection.");
+          return;
+        }
       } catch (error) {
-        console.error("Connection error:", error);
+        console.error("Connection check error:", error);
         setConnectionError(true);
         setVerifying(false);
         setShowManualVerify(true);
@@ -162,13 +171,13 @@ const VerifyEmail = () => {
           <p className="text-muted-foreground mt-2">Email Verification</p>
         </div>
 
-        <div className="bg-card border shadow-md rounded-lg p-6">
+        <div className="glass-card border border-violet-500/20 shadow-md rounded-lg p-6">
           {connectionError && (
-            <Alert variant="destructive" className="mb-4">
-              <WifiOff className="h-5 w-5" />
-              <AlertTitle>Connection Error</AlertTitle>
+            <Alert className="mb-4 bg-red-500/10 border-red-500/50">
+              <WifiOff className="h-5 w-5 text-red-500" />
+              <AlertTitle className="text-red-500">Connection Error</AlertTitle>
               <AlertDescription>
-                <p className="mb-4">Unable to connect to our services. Please check your internet connection and try again.</p>
+                <p className="mb-4 text-red-400">Unable to connect to our services. Please check your internet connection and try again.</p>
                 <Button 
                   variant="outline" 
                   className="w-full border-red-500/50 text-red-500 hover:bg-red-500/10" 
@@ -189,7 +198,7 @@ const VerifyEmail = () => {
               <CheckCircle2 className="h-5 w-5 text-green-500" />
               <AlertTitle className="text-green-500">Email verified successfully!</AlertTitle>
               <AlertDescription className="mt-2">
-                <p className="mb-4">Your email has been verified. You can now log in to your account.</p>
+                <p className="mb-4 text-green-400">Your email has been verified. You can now log in to your account.</p>
                 <Button 
                   className="w-full" 
                   onClick={() => navigate("/auth/login?verified=true")}
@@ -201,10 +210,10 @@ const VerifyEmail = () => {
           ) : (
             <div>
               {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertCircle className="h-5 w-5" />
-                  <AlertTitle>Verification Failed</AlertTitle>
-                  <AlertDescription>
+                <Alert className="mb-4 bg-red-500/10 border-red-500/50">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                  <AlertTitle className="text-red-500">Verification Failed</AlertTitle>
+                  <AlertDescription className="text-red-400">
                     {error}
                   </AlertDescription>
                 </Alert>
@@ -212,9 +221,9 @@ const VerifyEmail = () => {
               
               {showManualVerify && (
                 <div className="mt-4">
-                  <Alert className="mb-4">
-                    <AlertTitle>Manual Verification</AlertTitle>
-                    <AlertDescription>
+                  <Alert className="mb-4 bg-amber-500/10 border-amber-500/50">
+                    <AlertTitle className="text-amber-500">Manual Verification</AlertTitle>
+                    <AlertDescription className="text-amber-400">
                       Enter the verification code from your email below.
                       {localStorage.getItem('email_verification_code') && (
                         <p className="mt-2 p-2 bg-slate-800 rounded text-white">
@@ -226,12 +235,13 @@ const VerifyEmail = () => {
                   
                   <div className="space-y-4 mt-4">
                     <div className="space-y-2">
-                      <Label htmlFor="verification-code">Verification Code</Label>
+                      <Label htmlFor="verification-code" className="text-white">Verification Code</Label>
                       <Input
                         id="verification-code"
                         placeholder="Enter the code from your email"
                         value={verificationCode}
                         onChange={(e) => setVerificationCode(e.target.value)}
+                        className="bg-[#1a1a2e] border-violet-500/30 focus:border-violet-500"
                       />
                     </div>
                     <Button 
@@ -252,7 +262,7 @@ const VerifyEmail = () => {
                     {lastEmail && (
                       <Button
                         variant="outline"
-                        className="w-full mt-2"
+                        className="w-full mt-2 border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
                         onClick={handleResendVerificationEmail}
                       >
                         Resend Verification Email
@@ -261,7 +271,7 @@ const VerifyEmail = () => {
                     
                     <Button 
                       variant="outline" 
-                      className="w-full"
+                      className="w-full border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
                       onClick={() => navigate("/auth/login")}
                     >
                       Back to Login
@@ -274,6 +284,7 @@ const VerifyEmail = () => {
                 <div className="flex flex-col space-y-3">
                   <Button 
                     variant="outline" 
+                    className="border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
                     onClick={() => navigate("/auth/login")}
                   >
                     Back to Login
