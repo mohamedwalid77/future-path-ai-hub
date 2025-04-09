@@ -33,12 +33,17 @@ const VerifyEmail = () => {
     const checkConnection = async () => {
       try {
         // Simple ping to check if we can connect
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
         await fetch('https://dzyzxpnpkhsdmgmsuaar.supabase.co', { 
           method: 'HEAD',
           mode: 'no-cors',
           cache: 'no-cache',
-          timeout: 5000
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         setConnectionError(false);
       } catch (error) {
         console.error("Connection error:", error);
@@ -94,14 +99,20 @@ const VerifyEmail = () => {
     try {
       setVerifying(true);
       // Check connection first
-      const connectionCheck = await fetch('https://dzyzxpnpkhsdmgmsuaar.supabase.co', { 
-        method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-cache',
-        timeout: 5000
-      }).catch(() => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      try {
+        await fetch('https://dzyzxpnpkhsdmgmsuaar.supabase.co', { 
+          method: 'HEAD',
+          mode: 'no-cors',
+          cache: 'no-cache',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+      } catch (e) {
         throw new Error("Connection error. Please check your internet connection.");
-      });
+      }
       
       await verifyEmailWithCode(verificationCode);
       setSuccess(true);

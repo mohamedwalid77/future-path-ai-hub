@@ -21,12 +21,17 @@ const Login = () => {
     const checkConnection = async () => {
       try {
         // Simple ping to check if we can connect
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
         await fetch('https://dzyzxpnpkhsdmgmsuaar.supabase.co', { 
           method: 'HEAD',
           mode: 'no-cors',
           cache: 'no-cache',
-          timeout: 5000
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         setConnectionError(false);
       } catch (error) {
         console.error("Connection error:", error);
