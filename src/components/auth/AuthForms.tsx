@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,6 +15,60 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, Mail, CheckCircle2 } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+
+// Email Verification Banner Component
+export const EmailVerificationBanner = () => {
+  const { user, resendVerificationEmail } = useAuth();
+  const [sending, setSending] = useState(false);
+
+  // Only show for users who haven't verified their email
+  if (!user || user.emailVerified) {
+    return null;
+  }
+
+  const handleResendEmail = async () => {
+    try {
+      setSending(true);
+      await resendVerificationEmail();
+      toast({
+        title: "Verification email sent",
+        description: "Please check your inbox or spam folder.",
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to send email",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Alert variant="warning" className="mb-4 bg-amber-500/10 border-amber-500/50">
+      <AlertCircle className="h-4 w-4 text-amber-500" />
+      <AlertTitle className="text-amber-500">Verify your email</AlertTitle>
+      <AlertDescription className="text-amber-500">
+        <p className="mb-2">Please verify your email address to access all features.</p>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-amber-500 border-amber-500/50 hover:bg-amber-500/10"
+          onClick={handleResendEmail}
+          disabled={sending}
+        >
+          <Mail className="h-3 w-3 mr-1" />
+          {sending ? "Sending..." : "Resend verification email"}
+        </Button>
+      </AlertDescription>
+    </Alert>
+  );
+};
 
 const registerSchema = z.object({
   name: z.string().min(2, {
@@ -200,5 +255,79 @@ export const LoginForm = () => {
         </Button>
       </form>
     </Form>
+  );
+};
+
+// Forgot Password Form Component
+export const ForgotPasswordForm = () => {
+  const { forgotPassword } = useAuth();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [email, setEmail] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setError("Please enter your email address");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      await forgotPassword(email);
+      setSuccess(true);
+    } catch (error: any) {
+      setError(error.message || "Failed to send reset email. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {success ? (
+        <Alert className="bg-green-500/10 border-green-500/30">
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+          <AlertDescription className="text-green-500">
+            <p className="mb-4">Password reset instructions have been sent to your email.</p>
+            <Button 
+              onClick={() => navigate("/auth/login")} 
+              className="w-full"
+            >
+              Return to Login
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <FormLabel htmlFor="email">Email</FormLabel>
+            <Input 
+              id="email" 
+              type="email" 
+              placeholder="Enter your email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Sending Instructions..." : "Send Reset Instructions"}
+          </Button>
+          <div className="text-center mt-4">
+            <Button 
+              variant="link" 
+              className="text-primary"
+              onClick={() => navigate("/auth/login")}
+            >
+              Back to Login
+            </Button>
+          </div>
+        </form>
+      )}
+    </div>
   );
 };
