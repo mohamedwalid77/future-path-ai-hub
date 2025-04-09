@@ -50,7 +50,7 @@ export const EmailVerificationBanner = () => {
   };
 
   return (
-    <Alert variant="warning" className="mb-4 bg-amber-500/10 border-amber-500/50">
+    <Alert variant="default" className="mb-4 bg-amber-500/10 border-amber-500/50">
       <AlertCircle className="h-4 w-4 text-amber-500" />
       <AlertTitle className="text-amber-500">Verify your email</AlertTitle>
       <AlertDescription className="text-amber-500">
