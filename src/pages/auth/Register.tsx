@@ -176,78 +176,65 @@ WITH CHECK (EXISTS (
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0c0c14] cyber-grid p-4">
       <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a2e]/30 via-[#16213e]/20 to-[#0f172a]/30 z-0"></div>
-      <div className="max-w-md w-full z-10 relative">
-        <div className="text-center mb-8">
-          <div className="bg-violet-500/20 p-3 rounded-full w-36 h-36 mx-auto mb-5 flex items-center justify-center">
-            <h1 className="text-4xl font-bold text-gradient">Luminova AI</h1>
-          </div>
+      <div className="w-full max-w-md z-10 relative">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold text-gradient">Luminova AI</h1>
           <p className="text-muted-foreground mt-2">Begin your AI-powered career journey</p>
         </div>
         
-        <div className="glass-card p-8 mb-5 rounded-2xl border border-violet-500/20">
-          <h2 className="text-3xl font-semibold text-center mb-4 text-white">Create Account</h2>
-          <p className="text-center text-gray-400 mb-6">Sign up to start your AI career journey</p>
-          
-          {isCheckingDb ? (
-            <div className="text-center p-4 mb-4 bg-primary/10 rounded-md animate-pulse">
-              <p>Checking database configuration...</p>
-            </div>
-          ) : dbSetupError ? (
-            <Alert variant="destructive" className="mb-4 border-destructive/50 bg-destructive/10">
-              <AlertCircle className="h-5 w-5" />
-              <AlertTitle className="text-destructive font-semibold">Database Setup Required</AlertTitle>
-              <AlertDescription className="mt-2">
-                <p className="mb-3">The database tables need to be created. Please follow these steps:</p>
-                <ol className="list-decimal pl-5 space-y-2 mb-3">
-                  <li>Go to your Supabase project dashboard</li>
-                  <li>Navigate to the SQL Editor</li>
-                  <li>Click the button below to copy the SQL script</li>
-                  <li>Paste and run the SQL script to create all required tables</li>
-                </ol>
-                
-                <Button 
-                  className="w-full mb-3 bg-destructive/20 hover:bg-destructive/30 text-destructive border border-destructive/30"
-                  onClick={copySchemaToClipboard}
-                >
-                  <Database className="h-4 w-4 mr-2" />
-                  Copy SQL Schema to Clipboard
-                </Button>
-                
-                <Separator className="my-3 bg-destructive/30" />
-                
-                <div className="flex items-center p-2 bg-red-950/50 rounded">
-                  <Database className="h-4 w-4 mr-2 flex-shrink-0" />
-                  <span className="text-sm">
-                    Required tables: profiles, cv_uploads, cv_analysis, job_matches
-                  </span>
-                </div>
-                
-                <div className="mt-3 flex justify-between">
-                  <Link to="/auth/login" className="flex items-center text-primary hover:underline">
-                    <span>Return to login</span>
-                  </Link>
-                  <a 
-                    href="https://app.supabase.com/projects" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center text-primary hover:underline"
-                  >
-                    <span>Go to Supabase</span>
-                    <ExternalLink className="h-3 w-3 ml-1" />
-                  </a>
-                </div>
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <RegisterForm />
-          )}
-          
-          <div className="text-center mt-6">
-            <p className="text-gray-400">
-              Already have an account? <Link to="/auth/login" className="text-violet-400 hover:text-violet-300">Login</Link>
-            </p>
+        {isCheckingDb ? (
+          <div className="text-center p-4 mb-4 bg-primary/10 rounded-md animate-pulse">
+            <p>Checking database configuration...</p>
           </div>
-        </div>
+        ) : dbSetupError ? (
+          <Alert variant="destructive" className="mb-4 border-destructive/50 bg-destructive/10">
+            <AlertCircle className="h-5 w-5" />
+            <AlertTitle className="text-destructive font-semibold">Database Setup Required</AlertTitle>
+            <AlertDescription className="mt-2">
+              <p className="mb-3">The database tables need to be created. Please follow these steps:</p>
+              <ol className="list-decimal pl-5 space-y-2 mb-3">
+                <li>Go to your Supabase project dashboard</li>
+                <li>Navigate to the SQL Editor</li>
+                <li>Click the button below to copy the SQL script</li>
+                <li>Paste and run the SQL script to create all required tables</li>
+              </ol>
+              
+              <Button 
+                className="w-full mb-3 bg-destructive/20 hover:bg-destructive/30 text-destructive border border-destructive/30"
+                onClick={copySchemaToClipboard}
+              >
+                <Database className="h-4 w-4 mr-2" />
+                Copy SQL Schema to Clipboard
+              </Button>
+              
+              <Separator className="my-3 bg-destructive/30" />
+              
+              <div className="flex items-center p-2 bg-red-950/50 rounded">
+                <Database className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="text-sm">
+                  Required tables: profiles, cv_uploads, cv_analysis, job_matches
+                </span>
+              </div>
+              
+              <div className="mt-3 flex justify-between">
+                <Link to="/auth/login" className="flex items-center text-primary hover:underline">
+                  <span>Return to login</span>
+                </Link>
+                <a 
+                  href="https://app.supabase.com/projects" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center text-primary hover:underline"
+                >
+                  <span>Go to Supabase</span>
+                  <ExternalLink className="h-3 w-3 ml-1" />
+                </a>
+              </div>
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <RegisterForm />
+        )}
       </div>
     </div>
   );
