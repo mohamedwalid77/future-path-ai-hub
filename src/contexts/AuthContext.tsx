@@ -46,27 +46,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error.message === "Invalid login credentials") {
         errorMessage = "The email or password you entered is incorrect.";
       } else if (error.message.includes("Email not verified")) {
-        // Handle unverified email specifically
-        const userEmail = email;
-        errorMessage = "Please verify your email before logging in.";
-        
-        // Add option to resend verification email
-        toast({
-          title: "Email not verified",
-          description: (
-            <div>
-              <p>Please check your inbox for the verification link.</p>
-              <button 
-                className="text-primary underline mt-2"
-                onClick={() => authService.resendVerificationEmail(userEmail)}
-              >
-                Resend verification email
-              </button>
-            </div>
-          ),
-          variant: "destructive",
-        });
-        return;
+        // TEMPORARILY BYPASS EMAIL VERIFICATION
+        // Instead of showing error, let's log in the user
+        try {
+          await authService.login(email, password, true); // Adding a bypass flag
+          toast({
+            title: "Login successful",
+            description: "Welcome back to Luminova AI!",
+          });
+          navigate("/dashboard");
+          return;
+        } catch (innerError: any) {
+          errorMessage = "Login failed. Please check your credentials.";
+        }
       }
       
       toast({
@@ -180,38 +172,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const verifyEmail = async (token: string) => {
-    // This is handled by Supabase automatically via email verification link
+    // TEMPORARILY DISABLED
     toast({
-      title: "Email verified",
-      description: "Your email has been successfully verified. You can now log in.",
+      title: "Email verification bypassed",
+      description: "Email verification is currently disabled.",
     });
     navigate("/auth/login");
   };
 
   const resendVerificationEmail = async () => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "User not logged in",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    try {
-      await authService.resendVerificationEmail(user.email);
-      
-      toast({
-        title: "Verification email sent",
-        description: `We've sent a verification link to ${user.email}`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "There was an error sending the verification email.",
-        variant: "destructive",
-      });
-    }
+    // TEMPORARILY DISABLED
+    toast({
+      title: "Email verification disabled",
+      description: "Email verification is currently disabled during development.",
+    });
   };
 
   const value = {

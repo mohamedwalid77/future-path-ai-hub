@@ -24,6 +24,12 @@ export const useAuthState = () => {
         
         if (session && session.user) {
           const userData = await authService.getUserProfile(session.user.id);
+          
+          // Ensure userData is verified for development purposes
+          if (userData) {
+            userData.emailVerified = true;
+          }
+          
           setUser(userData);
         }
       } catch (error) {
@@ -40,6 +46,12 @@ export const useAuthState = () => {
       async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
           const userData = await authService.getUserProfile(session.user.id);
+          
+          // Always set emailVerified to true for development
+          if (userData) {
+            userData.emailVerified = true;
+          }
+          
           setUser(userData);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);

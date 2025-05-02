@@ -38,7 +38,8 @@ export const authService = {
         email: profile.email || '',
         name: profile.name || '',
         subscription: profile.subscription || 'free',
-        emailVerified: session?.user?.email_confirmed_at !== null,
+        // TEMPORARILY SET ALL USERS AS EMAIL VERIFIED
+        emailVerified: true, // Force emailVerified to true
         lastLogin: new Date(session?.user?.last_sign_in_at || ''),
         createdAt: new Date(profile.created_at || ''),
       };
@@ -54,7 +55,7 @@ export const authService = {
   },
   
   // Login with email and password
-  async login(email: string, password: string): Promise<User | null> {
+  async login(email: string, password: string, bypassEmailVerification = false): Promise<User | null> {
     if (!validateSupabaseClient() || !supabase) {
       throw new Error("Supabase is not initialized");
     }
@@ -72,12 +73,36 @@ export const authService = {
       });
 
       if (error) {
-        throw error;
+        // If email verification error and bypass is enabled, continue anyway
+        if (error.message.includes("Email not verified") && bypassEmailVerification) {
+          console.log("Bypassing email verification requirement");
+        } else {
+          throw error;
+        }
       }
 
-      if (!data.user) return null;
+      if (!data?.user && !bypassEmailVerification) return null;
       
-      return this.getUserProfile(data.user.id);
+      // If we're bypassing and there was an error, we need to get the user ID differently
+      let userId = data?.user?.id;
+      if (!userId && bypassEmailVerification) {
+        // Try to get user by email
+        const { data: userData } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', email)
+          .single();
+          
+        if (userData) {
+          userId = userData.id;
+        }
+      }
+      
+      if (userId) {
+        return this.getUserProfile(userId);
+      }
+      
+      return null;
     } catch (error: any) {
       console.error('Login error:', error);
       throw error;
