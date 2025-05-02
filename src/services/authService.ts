@@ -1,4 +1,3 @@
-
 import { supabase, validateSupabaseClient, checkDatabaseSetup } from '@/lib/supabase';
 import { User } from '@/types/auth';
 import { toast } from '@/components/ui/use-toast';
@@ -38,8 +37,8 @@ export const authService = {
         email: profile.email || '',
         name: profile.name || '',
         subscription: profile.subscription || 'free',
-        // TEMPORARILY SET ALL USERS AS EMAIL VERIFIED
-        emailVerified: true, // Force emailVerified to true
+        // ALWAYS SET ALL USERS AS EMAIL VERIFIED
+        emailVerified: true,
         lastLogin: new Date(session?.user?.last_sign_in_at || ''),
         createdAt: new Date(profile.created_at || ''),
       };
@@ -55,7 +54,7 @@ export const authService = {
   },
   
   // Login with email and password
-  async login(email: string, password: string, bypassEmailVerification = false): Promise<User | null> {
+  async login(email: string, password: string): Promise<User | null> {
     if (!validateSupabaseClient() || !supabase) {
       throw new Error("Supabase is not initialized");
     }
@@ -73,36 +72,12 @@ export const authService = {
       });
 
       if (error) {
-        // If email verification error and bypass is enabled, continue anyway
-        if (error.message.includes("Email not verified") && bypassEmailVerification) {
-          console.log("Bypassing email verification requirement");
-        } else {
-          throw error;
-        }
+        throw error;
       }
 
-      if (!data?.user && !bypassEmailVerification) return null;
+      if (!data?.user) return null;
       
-      // If we're bypassing and there was an error, we need to get the user ID differently
-      let userId = data?.user?.id;
-      if (!userId && bypassEmailVerification) {
-        // Try to get user by email
-        const { data: userData } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', email)
-          .single();
-          
-        if (userData) {
-          userId = userData.id;
-        }
-      }
-      
-      if (userId) {
-        return this.getUserProfile(userId);
-      }
-      
-      return null;
+      return this.getUserProfile(data.user.id);
     } catch (error: any) {
       console.error('Login error:', error);
       throw error;
@@ -140,14 +115,16 @@ export const authService = {
       });
     }
     
-    // Sign up the user with Supabase auth
+    // Sign up the user with Supabase auth - without email confirmation required
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           name: name,
-        }
+        },
+        // Explicitly disable email confirmation
+        emailRedirectTo: undefined
       }
     });
 
@@ -186,7 +163,7 @@ export const authService = {
               email: email,
               name: name,
               subscription: 'free',
-              emailVerified: false,
+              emailVerified: true, // Force to true since we're disabling verification
               lastLogin: new Date(),
               createdAt: new Date(),
             } : null;
@@ -207,7 +184,7 @@ export const authService = {
           email: email,
           name: name,
           subscription: 'free',
-          emailVerified: false,
+          emailVerified: true, // Force to true since we're disabling verification
           lastLogin: new Date(),
           createdAt: new Date(),
         } : null;
@@ -294,24 +271,12 @@ export const authService = {
     }
   },
   
-  // Resend verification email
+  // Resend verification email - disabled
   async resendVerificationEmail(email: string): Promise<void> {
-    if (!validateSupabaseClient() || !supabase) {
-      throw new Error("Supabase is not initialized");
-    }
-    
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email,
-    });
-    
-    if (error) {
-      throw error;
-    }
-    
+    // Disabled since email verification is turned off
     toast({
-      title: "Verification email sent",
-      description: "Please check your inbox and spam folder for the verification link",
+      title: "Email verification disabled",
+      description: "Email verification is currently disabled.",
     });
   },
   

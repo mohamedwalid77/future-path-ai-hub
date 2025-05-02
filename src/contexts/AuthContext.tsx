@@ -45,20 +45,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error.message === "Invalid login credentials") {
         errorMessage = "The email or password you entered is incorrect.";
-      } else if (error.message.includes("Email not verified")) {
-        // TEMPORARILY BYPASS EMAIL VERIFICATION
-        // Instead of showing error, let's log in the user
-        try {
-          await authService.login(email, password, true); // Adding a bypass flag
-          toast({
-            title: "Login successful",
-            description: "Welcome back to Luminova AI!",
-          });
-          navigate("/dashboard");
-          return;
-        } catch (innerError: any) {
-          errorMessage = "Login failed. Please check your credentials.";
-        }
       }
       
       toast({
@@ -79,9 +65,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       toast({
         title: "Registration successful",
-        description: "Please check your email to verify your account.",
+        description: "Your account has been created successfully.",
       });
       
+      // After registration, redirect to dashboard directly since we don't need email verification
       navigate("/dashboard");
     } catch (error: any) {
       toast({
@@ -172,19 +159,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const verifyEmail = async (token: string) => {
-    // TEMPORARILY DISABLED
+    // Email verification is disabled
     toast({
-      title: "Email verification bypassed",
+      title: "Email verification disabled",
       description: "Email verification is currently disabled.",
     });
     navigate("/auth/login");
   };
 
   const resendVerificationEmail = async () => {
-    // TEMPORARILY DISABLED
+    // Email verification is disabled
     toast({
       title: "Email verification disabled",
-      description: "Email verification is currently disabled during development.",
+      description: "Email verification is currently disabled.",
     });
   };
 

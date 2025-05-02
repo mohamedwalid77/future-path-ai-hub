@@ -450,30 +450,8 @@ export const ForgotPasswordForm = () => {
   );
 };
 
+// Removing the email verification banner since we've disabled verification
 export const EmailVerificationBanner = () => {
-  const { user, resendVerificationEmail, isLoading } = useAuth();
-  
-  if (!user || user.emailVerified) {
-    return null;
-  }
-  
-  return (
-    <div className="bg-primary/10 border-y border-primary/20 py-2 px-4">
-      <div className="container max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm">
-          <AlertCircle className="h-4 w-4 text-primary" />
-          <p>Please verify your email address to access all features.</p>
-        </div>
-        <Button 
-          size="sm" 
-          variant="outline" 
-          className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20"
-          onClick={resendVerificationEmail}
-          disabled={isLoading}
-        >
-          {isLoading ? "Sending..." : "Resend verification email"}
-        </Button>
-      </div>
-    </div>
-  );
+  // Always return null since verification is disabled
+  return null;
 };

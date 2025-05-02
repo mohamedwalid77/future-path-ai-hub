@@ -25,7 +25,7 @@ export const useAuthState = () => {
         if (session && session.user) {
           const userData = await authService.getUserProfile(session.user.id);
           
-          // Ensure userData is verified for development purposes
+          // Always set emailVerified to true since we're disabling verification
           if (userData) {
             userData.emailVerified = true;
           }
@@ -47,7 +47,7 @@ export const useAuthState = () => {
         if (event === 'SIGNED_IN' && session) {
           const userData = await authService.getUserProfile(session.user.id);
           
-          // Always set emailVerified to true for development
+          // Always set emailVerified to true since verification is disabled
           if (userData) {
             userData.emailVerified = true;
           }
