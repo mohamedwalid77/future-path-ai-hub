@@ -174,7 +174,7 @@ export const checkDatabaseSetup = async (): Promise<boolean> => {
   
   try {
     // Check if the profiles table exists and has content
-    const { data: profiles, error: profilesError } = await supabase
+    const { error: profilesError } = await supabase
       .from('profiles')
       .select('id')
       .limit(1);
@@ -187,7 +187,7 @@ export const checkDatabaseSetup = async (): Promise<boolean> => {
         localStorage.setItem('supabase_profiles_error', 'true');
         toast({
           title: "Database Setup Required",
-          description: "The database tables need to be created. Please run the SQL in the Supabase SQL Editor.",
+          description: "The database tables need to be created. Please follow the instructions on the registration page.",
           variant: "destructive",
         });
         return false;
@@ -212,7 +212,7 @@ export const checkDatabaseSetup = async (): Promise<boolean> => {
       localStorage.setItem('supabase_profiles_error', 'true');
       toast({
         title: "Database Setup Required",
-        description: "CV Uploads table is missing. Please run the complete SQL setup.",
+        description: "CV Uploads table is missing. Please run the complete SQL setup from the registration page.",
         variant: "destructive",
       });
       return false;

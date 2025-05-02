@@ -159,8 +159,8 @@ WITH CHECK (EXISTS (
       .then(() => {
         toast({
           title: "SQL Schema copied",
-          description: "SQL schema has been copied to your clipboard.",
-          variant: "default" // Changed from "success" to "default"
+          description: "SQL schema has been copied to your clipboard. Paste it into Supabase SQL Editor and run it to set up the database.",
+          variant: "default"
         });
       })
       .catch(err => {
@@ -191,12 +191,13 @@ WITH CHECK (EXISTS (
             <AlertCircle className="h-5 w-5" />
             <AlertTitle className="text-destructive font-semibold">Database Setup Required</AlertTitle>
             <AlertDescription className="mt-2">
-              <p className="mb-3">The database tables need to be created. Please follow these steps:</p>
+              <p className="mb-3">The database tables need to be created before you can register. Please follow these steps:</p>
               <ol className="list-decimal pl-5 space-y-2 mb-3">
                 <li>Go to your Supabase project dashboard</li>
                 <li>Navigate to the SQL Editor</li>
                 <li>Click the button below to copy the SQL script</li>
                 <li>Paste and run the SQL script to create all required tables</li>
+                <li>Return to this page and try registering again</li>
               </ol>
               
               <Button 

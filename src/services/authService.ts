@@ -1,3 +1,4 @@
+
 import { supabase, validateSupabaseClient, checkDatabaseSetup } from '@/lib/supabase';
 import { User } from '@/types/auth';
 import { toast } from '@/components/ui/use-toast';
@@ -17,9 +18,11 @@ export const authService = {
       if (error) {
         if (error.code === '42P01') {  // Relation does not exist
           console.error('The profiles table does not exist:', error);
+          // Set a flag in localStorage that will be checked on the register page
+          localStorage.setItem("supabase_profiles_error", "true");
           toast({
             title: "Database Setup Required",
-            description: "The database tables need to be created. Please check the SQL in src/lib/supabase.ts",
+            description: "The database tables need to be created. Please check the SQL in Register page",
             variant: "destructive",
           });
           return null;
@@ -63,7 +66,7 @@ export const authService = {
       // First check if database is set up
       const isDbSetup = await this.checkDatabaseSetup();
       if (!isDbSetup) {
-        throw new Error("Database not properly set up. Please check the SQL in src/lib/supabase.ts");
+        throw new Error("Database not properly set up. Please follow the instructions on the registration page.");
       }
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -108,11 +111,16 @@ export const authService = {
     // First check if database is set up
     const isDbSetup = await this.checkDatabaseSetup();
     if (!isDbSetup) {
+      // Set a flag in localStorage that will be checked on the register page
+      localStorage.setItem("supabase_profiles_error", "true");
+      
       toast({
         title: "Database Setup Required",
-        description: "The database tables need to be created. Please check the SQL in src/lib/supabase.ts",
+        description: "The database tables need to be created. Please follow the instructions on the registration page.",
         variant: "destructive",
       });
+      
+      throw new Error("Database not properly set up. Please follow the instructions on the registration page.");
     }
     
     // Sign up the user with Supabase auth - without email confirmation required
@@ -129,6 +137,11 @@ export const authService = {
     });
 
     if (error) {
+      if (error.message === "Database error saving new user") {
+        // Set a flag in localStorage that will be checked on the register page
+        localStorage.setItem("supabase_profiles_error", "true");
+        throw new Error("Database tables are missing. Please follow the instructions on the registration page to create the required tables.");
+      }
       throw error;
     }
 
@@ -151,9 +164,12 @@ export const authService = {
           // Check if this is a "relation does not exist" error
           if (profileError.code === '42P01') {
             console.error('The profiles table does not exist:', profileError);
+            // Set a flag in localStorage that will be checked on the register page
+            localStorage.setItem("supabase_profiles_error", "true");
+            
             toast({
               title: "Database Setup Required",
-              description: "The database tables need to be created. Please check the SQL in src/lib/supabase.ts",
+              description: "The database tables need to be created. Please follow the instructions on the registration page.",
               variant: "destructive",
             });
             
@@ -174,7 +190,7 @@ export const authService = {
         console.error('Error creating user profile:', err);
         toast({
           title: "Error Creating Profile",
-          description: "Please ensure database tables are created properly.",
+          description: "Please ensure database tables are created properly using the SQL in the registration page.",
           variant: "destructive",
         });
         
